@@ -218,3 +218,9 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# brainboard runtime data (never commit board contents)
+data/
+*.board.json
+.data.lock
+.*.tmp
