@@ -21,8 +21,8 @@ parent, the config default (`bb use <slug>`), or the only active project. If sev
 request and nothing pins one, ask the user which project — don't guess.
 
 ## "Check the board"
-1. `bb -p <slug> inbox`. This lists, **per item**, every note by someone else posted after your own last
-   note on that item, plus open thoughts not written by you. Don't filter by a global timestamp. Notes
+1. `bb -p <slug> inbox`. This lists, **per item**, every note by the user (`me`) posted after your own last
+   note on that item, plus the user's open thoughts. `--from all` also includes other agents' notes. Don't filter by a global timestamp. Notes
    written between your reads are easy to miss that way.
 2. Answer **every** entry: do the work, ask a question, or say it's parked. Reply with `note`, then set the
    status (`done`, `blocked`, or `decide`).

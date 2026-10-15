@@ -301,13 +301,15 @@ def cmd_thoughts(a, data):
 
 
 def cmd_inbox(a, data):
-    """Per item: notes by others posted after my own last note on that item. Plus open thoughts not by me."""
+    """Per item: notes by the person (or --from) posted after my own last note on that item, plus their open thoughts."""
     me, found = a.who, False
+    frm = None if a.frm == "all" else set(a.frm.split(","))
+    asks = lambda who: who != me and (frm is None or who in frm)
     for it in data["items"]:
         notes = it.get("notes", [])
         mine = [k for k, n in enumerate(notes) if n["who"] == me]
         start = mine[-1] + 1 if mine else 0
-        waiting = [n for n in notes[start:] if n["who"] != me]
+        waiting = [n for n in notes[start:] if asks(n["who"])]
         if not waiting:
             continue
         found = True
@@ -315,7 +317,7 @@ def cmd_inbox(a, data):
         for n in waiting:
             print(f"  [{n['at'][:16]} {n['who']}]\n" + wrap(n["text"]))
         print()
-    th = [t for t in data.get("thoughts", []) if not t.get("done") and t["who"] != me]
+    th = [t for t in data.get("thoughts", []) if not t.get("done") and asks(t["who"])]
     if th:
         found = True
         print("Open thoughts:")
@@ -369,6 +371,8 @@ def main():
     p.add_argument("--url"); p.add_argument("--who", dest="set_who")
     p = sub.add_parser("summary")
     p = sub.add_parser("inbox", help="notes and thoughts waiting for you")
+    p.add_argument("--from", dest="frm", default=CFG.get("human", "me"),
+                   help="whose notes count, comma-separated, or 'all' (default: %(default)s)")
     p = sub.add_parser("next"); p.add_argument("-n", type=int, default=8)
     p = sub.add_parser("list"); p.add_argument("--status"); p.add_argument("--priority")
     p.add_argument("--owner"); p.add_argument("--cat"); p.add_argument("--json", action="store_true")
