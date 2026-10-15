@@ -9,6 +9,14 @@ Environment
   BRAINBOARD_DATA      legacy single-board file; its directory becomes the home and the board is
                        migrated into the first project
   BRAINBOARD_PASSWORD  enables HTTP Basic auth (any username). Required off localhost.
+  BRAINBOARD_TLS_PORT  also serve HTTPS on this port (browsers only allow the microphone on HTTPS or
+                       localhost); needs BRAINBOARD_TLS_CERT and BRAINBOARD_TLS_KEY (PEM files)
+  BRAINBOARD_ASR_URL   speech-to-text endpoint for voice input, OpenAI transcription API shape, e.g.
+                       http://127.0.0.1:8010/v1/audio/transcriptions (asr/server.py, Qwen3-ASR) or
+                       https://api.openai.com/v1/audio/transcriptions. Unset = voice input off.
+  BRAINBOARD_ASR_KEY   bearer token for the ASR endpoint (optional)
+  BRAINBOARD_ASR_MODEL model name sent to the endpoint (default Qwen/Qwen3-ASR-1.7B)
+  BRAINBOARD_ASR_LANGUAGE  force a language, e.g. English (default: auto-detect)
 
 API
   GET  /api/projects                 project summaries + index version
@@ -16,6 +24,8 @@ API
   GET  /api/version                  index version (changes when any project changes)
   GET  /api/p/<slug>/state|version   one project
   POST /api/p/<slug>/op              one operation (see core.apply_op)
+  GET  /api/config                   {"voice": bool, "asr_model": …}
+  POST /api/transcribe               raw audio body (Content-Type: audio/…) → {"text": …}
 """
 import argparse
 import base64
@@ -23,7 +33,12 @@ import hmac
 import json
 import os
 import re
+import ssl
 import sys
+import threading
+import urllib.error
+import urllib.request
+import uuid
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
@@ -33,7 +48,38 @@ import core  # noqa: E402
 INDEX = os.path.join(core.HERE, "index.html")
 PASSWORD = os.environ.get("BRAINBOARD_PASSWORD", "")
 MAX_BODY = 1 << 20
+MAX_AUDIO = 25 << 20
+ASR_URL = os.environ.get("BRAINBOARD_ASR_URL", "")
+ASR_KEY = os.environ.get("BRAINBOARD_ASR_KEY", "")
+ASR_MODEL = os.environ.get("BRAINBOARD_ASR_MODEL", "Qwen/Qwen3-ASR-1.7B")
+ASR_LANGUAGE = os.environ.get("BRAINBOARD_ASR_LANGUAGE", "")
+AUDIO_EXT = {"audio/webm": "webm", "audio/ogg": "ogg", "audio/mp4": "m4a", "audio/mpeg": "mp3",
+             "audio/wav": "wav", "audio/x-wav": "wav", "audio/aac": "aac", "audio/flac": "flac"}
 PROJECT_RE = re.compile(r"^/api/p/([a-z0-9][a-z0-9-]{0,47})/(state|version|op)$")
+
+
+def transcribe(audio, ctype):
+    """Forward audio to the configured OpenAI-compatible transcription endpoint; returns the text."""
+    base = ctype.split(";")[0].strip().lower()
+    ext = AUDIO_EXT.get(base, "webm")
+    fields = {"model": ASR_MODEL, "response_format": "json"}
+    if ASR_LANGUAGE:
+        fields["language"] = ASR_LANGUAGE
+    b = uuid.uuid4().hex
+    parts = [f'--{b}\r\nContent-Disposition: form-data; name="{k}"\r\n\r\n{v}\r\n'.encode() for k, v in fields.items()]
+    parts.append(f'--{b}\r\nContent-Disposition: form-data; name="file"; filename="voice.{ext}"\r\n'
+                 f'Content-Type: {base or "application/octet-stream"}\r\n\r\n'.encode() + audio + b"\r\n")
+    body = b"".join(parts) + f"--{b}--\r\n".encode()
+    req = urllib.request.Request(ASR_URL, data=body, headers={"Content-Type": f"multipart/form-data; boundary={b}"})
+    if ASR_KEY:
+        req.add_header("Authorization", "Bearer " + ASR_KEY)
+    try:
+        with urllib.request.urlopen(req, timeout=180) as r:
+            return json.load(r).get("text", "").strip()
+    except urllib.error.HTTPError as e:
+        raise RuntimeError(f"speech service said {e.code}: {e.read().decode(errors='replace')[:200]}")
+    except (urllib.error.URLError, OSError) as e:
+        raise RuntimeError(f"speech service unreachable: {getattr(e, 'reason', e)}")
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -89,6 +135,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, {"projects": core.list_projects(), "version": core.index_version()})
         if path == "/api/version":
             return self._send(200, {"version": core.index_version()})
+        if path == "/api/config":
+            return self._send(200, {"voice": bool(ASR_URL), "asr_model": ASR_MODEL if ASR_URL else ""})
         m = PROJECT_RE.match(path)
         if m and m.group(2) != "op":
             slug = m.group(1)
@@ -103,6 +151,8 @@ class Handler(BaseHTTPRequestHandler):
         if not self._authed():
             return
         path = self.path.split("?")[0]
+        if path == "/api/transcribe":
+            return self._transcribe()
         m = PROJECT_RE.match(path)
         if path != "/api/projects" and not (m and m.group(2) == "op"):
             return self._send(404, {"error": "not found"})
@@ -125,8 +175,23 @@ class Handler(BaseHTTPRequestHandler):
         except (ValueError, TypeError) as e:
             return self._send(400, {"error": str(e)})
 
+    def _transcribe(self):
+        if not ASR_URL:
+            return self._send(404, {"error": "voice input is not configured (BRAINBOARD_ASR_URL)"})
+        n = int(self.headers.get("Content-Length", 0))
+        if n > MAX_AUDIO:
+            return self._send(413, {"error": "recording too large (25 MB max)"})
+        if n == 0:
+            return self._send(400, {"error": "empty recording"})
+        audio = self.rfile.read(n)
+        try:
+            text = transcribe(audio, self.headers.get("Content-Type", ""))
+        except RuntimeError as e:
+            return self._send(502, {"error": str(e)})
+        self._send(200, {"text": text})
+
     def log_message(self, fmt, *args):
-        if "/api/version" not in (args[0] if args else ""):
+        if "/version " not in (args[0] if args else ""):
             sys.stderr.write("%s - %s\n" % (self.address_string(), fmt % args))
 
 
@@ -141,7 +206,17 @@ def main():
     core.ensure_home()
     srv = ThreadingHTTPServer((a.host, a.port), Handler)
     url = f"http://{'127.0.0.1' if a.host == '0.0.0.0' else a.host}:{a.port}/"
-    print(f"brainboard: {url}  home={core.HOME}  auth={'on' if PASSWORD else 'off'}", flush=True)
+    print(f"brainboard: {url}  home={core.HOME}  auth={'on' if PASSWORD else 'off'}  "
+          f"voice={'on → ' + ASR_URL if ASR_URL else 'off'}", flush=True)
+    tls_port = int(os.environ.get("BRAINBOARD_TLS_PORT", 0) or 0)
+    if tls_port:
+        ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        ctx.load_cert_chain(os.path.expanduser(os.environ["BRAINBOARD_TLS_CERT"]),
+                            os.path.expanduser(os.environ["BRAINBOARD_TLS_KEY"]))
+        tls = ThreadingHTTPServer((a.host, tls_port), Handler)
+        tls.socket = ctx.wrap_socket(tls.socket, server_side=True)
+        threading.Thread(target=tls.serve_forever, daemon=True).start()
+        print(f"brainboard: https on port {tls_port}", flush=True)
     if not a.no_open and a.host in ("127.0.0.1", "localhost"):
         webbrowser.open(url)
     try:

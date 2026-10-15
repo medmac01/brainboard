@@ -253,6 +253,18 @@ h2{font-size:12px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink3
 .xside .xrow{padding:8px 10px}
 @media (max-width:640px){.xrow{grid-template-columns:auto minmax(0,1fr) auto}.xrow .rid,.xrow .chip.rel{display:none}}
 
+/* voice input */
+.mic{display:none;align-items:center;gap:5px;border:1px solid var(--line);background:var(--panel);color:var(--ink2);border-radius:9px;height:28px;padding:0 8px;font-size:12px;font-variant-numeric:tabular-nums;text-transform:none;letter-spacing:0;font-weight:600}
+body.voice .mic{display:inline-flex}
+.voice-only{display:none}body.voice .voice-only{display:block}
+.mic:hover{border-color:var(--line2);color:var(--ink)}
+.mic.rec{background:var(--p1);border-color:var(--p1);color:#fff;animation:micpulse 1.4s ease-in-out infinite}
+.mic.busy{color:var(--accent);border-color:var(--accent);cursor:progress}
+@keyframes micpulse{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--p1) 45%,transparent)}50%{box-shadow:0 0 0 6px transparent}}
+.spin{animation:spin .9s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.sec h5 .mic{margin-left:auto;height:24px}
+
 /* thoughts */
 .thoughts{max-width:760px}
 .th{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;padding:12px 14px;align-items:start}
@@ -409,6 +421,9 @@ body.in-project .proj-only{display:flex}
   <symbol id="i-wave" viewBox="0 0 24 24"><path d="M3 12c3-4 6 4 9 0s6-4 9 0"/></symbol>
   <symbol id="i-server" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="7" rx="2"/><rect x="3" y="13" width="18" height="7" rx="2"/><path d="M7 7.5h.01M7 16.5h.01"/></symbol>
   <symbol id="i-chart" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 15v2M11 11v6M15 7v10M19 12v5"/></symbol>
+  <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v4M8 21h8"/></symbol>
+  <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor"/></symbol>
+  <symbol id="i-loader" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-6.2-8.6"/></symbol>
   <symbol id="i-logo" viewBox="0 0 24 24"><rect x="4" y="5" width="4" height="14" rx="1.6" fill="#fff" stroke="none"/><rect x="10" y="5" width="4" height="9" rx="1.6" fill="#fff" stroke="none" opacity=".82"/><rect x="16" y="5" width="4" height="5" rx="1.6" fill="#fff" stroke="none" opacity=".62"/></symbol>
 </svg>
 
@@ -462,6 +477,7 @@ body.in-project .proj-only{display:flex}
       <p>brainboard holds your <b>projects</b>. Each project has its own items, decisions, thoughts and activity, stored as one JSON file on the server. This page, Claude, Codex and any other agent read and write the same files, so the board is the shared interface between you and them. Changes from anyone show up here within ~2 seconds.</p>
       <p><b>Statuses.</b> <span class="chip st"><svg class="ic"><use href="#i-todo"/></svg>To do</span> → <span class="chip st"><svg class="ic"><use href="#i-doing"/></svg>Doing</span> → <span class="chip st"><svg class="ic"><use href="#i-done"/></svg>Done</span>. Use <span class="chip st"><svg class="ic"><use href="#i-decide"/></svg>Needs decision</span> when something is waiting on <i>you</i> to choose, <span class="chip st"><svg class="ic"><use href="#i-blocked"/></svg>Blocked</span> when it's waiting on something else, and <span class="chip st"><svg class="ic"><use href="#i-skip"/></svg>Won't fix</span> to drop it (dropped items don't count against your %).</p>
       <p><b>Experiments.</b> Each project also has an Experiments tab for side runs (reruns, ablations, quick adjustments): the question, the setup, where it runs, the results and an outcome (<span class="chip out" style="color:var(--done)">Worked</span> <span class="chip out" style="color:var(--p2)">Inconclusive</span> <span class="chip out" style="color:var(--p1)">Didn't work</span>). Link an experiment to the items it informs, and it shows up on those items too. Experiments don't count toward the % ring.</p>
+      <p class="voice-only"><b>Voice input.</b> The <svg class="ic sm"><use href="#i-mic"/></svg> button next to a text box records you, and the transcript is added to that box. Click it again to stop, or press <kbd>Esc</kbd> to discard. Live recording needs the HTTPS address. Over plain HTTP the button lets you pick an audio file instead.</p>
       <p><b>The % ring</b> is priority-weighted: a P1 item counts 3×, P2 2×, P3 1×. Partial progress counts too, so move the slider as you go.</p>
       <p><b>Talking to agents.</b> Leave a note on an item (“Claude: draft the fix for this”) or drop a thought, then tell the agent “check the board”. It answers in the same note thread.</p>
       <p><b>Shortcuts.</b> <kbd>/</kbd> search · <kbd>t</kbd> new thought · <kbd>g</kbd> all projects · <kbd>Esc</kbd> close panel · <kbd>⌘</kbd><kbd>↵</kbd> save a text box</p>
@@ -509,7 +525,7 @@ echo SLUG > .brainboard           # pin a repo to a project</pre>
           <div class="card quick">
             <h2><svg class="ic sm"><use href="#i-bulb"/></svg>Brain dump</h2>
             <textarea id="quickThought" placeholder="Anything on your mind: an idea, a worry, a question for an agent…  (⌘↵ to save)"></textarea>
-            <div class="right"><button class="btn primary small" id="quickSave"><svg class="ic sm"><use href="#i-plus"/></svg>Save thought</button></div>
+            <div class="right"><button class="mic" data-mic="quickThought" title="Dictate"><svg class="ic sm"><use href="#i-mic"/></svg></button><button class="btn primary small" id="quickSave"><svg class="ic sm"><use href="#i-plus"/></svg>Save thought</button></div>
           </div>
           <div class="card bars xside" id="xSide"></div>
           <div class="card bars"><h2><svg class="ic sm"><use href="#i-folder"/></svg>By category</h2><div id="catBars"></div></div>
@@ -553,7 +569,7 @@ echo SLUG > .brainboard           # pin a repo to a project</pre>
       <div class="thoughts">
         <div class="card quick" style="margin-bottom:18px">
           <textarea id="thoughtInput" placeholder="Write it down so you can stop holding it in your head…  (⌘↵ to save)"></textarea>
-          <div class="right"><label class="muted" style="font-size:12.5px;margin-right:auto;display:flex;gap:6px;align-items:center"><input type="checkbox" id="showDoneThoughts"> show handled</label><button class="btn primary small" id="thoughtSave"><svg class="ic sm"><use href="#i-plus"/></svg>Save</button></div>
+          <div class="right"><label class="muted" style="font-size:12.5px;margin-right:auto;display:flex;gap:6px;align-items:center"><input type="checkbox" id="showDoneThoughts"> show handled</label><button class="mic" data-mic="thoughtInput" title="Dictate"><svg class="ic sm"><use href="#i-mic"/></svg></button><button class="btn primary small" id="thoughtSave"><svg class="ic sm"><use href="#i-plus"/></svg>Save</button></div>
         </div>
         <div class="card" id="thoughtList"></div>
       </div>
@@ -568,6 +584,7 @@ echo SLUG > .brainboard           # pin a repo to a project</pre>
 <div class="scrim" id="scrim"></div>
 <aside class="drawer" id="drawer" aria-hidden="true"></aside>
 <div class="toast" id="toast"></div>
+<input type="file" id="voiceFile" accept="audio/*" capture hidden>
 
 <dialog id="newDlg">
   <form method="dialog" id="newForm">
@@ -763,6 +780,7 @@ function render(){
   if(t==="focus") renderFocus(); if(t==="items") renderItems(); if(t==="board") renderBoard();
   if(t==="experiments") renderExps(); if(t==="thoughts") renderThoughts(); if(t==="activity") renderActivity(); if(t==="settings") renderSettings();
   if(openId) renderDrawer(openId);
+  syncMic();
 }
 function heroSub(){
   const items=S.items, done=items.filter(i=>i.status==="done").length;
@@ -1006,7 +1024,7 @@ $("#newDlg").addEventListener("close",async()=>{
 $("#showArchived").onchange=e=>{ui.archived=e.target.checked;persist();renderHome()};
 
 /* ---------- drawer ---------- */
-function openDrawer(id,push=true){openId=id;renderDrawer(id);$("#drawer").classList.add("on");$("#scrim").classList.add("on");$("#drawer").setAttribute("aria-hidden","false");
+function openDrawer(id,push=true){openId=id;renderDrawer(id);syncMic();$("#drawer").classList.add("on");$("#scrim").classList.add("on");$("#drawer").setAttribute("aria-hidden","false");
   if(push) history.replaceState(null,"",itemHash(id))}
 function closeDrawer(silent){openId=null;$("#drawer").classList.remove("on");$("#scrim").classList.remove("on");$("#drawer").setAttribute("aria-hidden","true");
   if(!silent && cur) history.replaceState(null,"",itemHash());
@@ -1015,7 +1033,7 @@ function notesHTML(it,keepNote){
   return `<div class="sec"><h5>${ic("msg","sm")}Notes & conversation (${(it.notes||[]).length})</h5>
         ${(it.notes||[]).map(n=>`<div class="note" style="--oc:${ownerColor(n.who)}"><div class="h">${ownerDot(n.who)}<b>${esc(n.who)}</b> · ${ago(n.at)}</div><div class="x">${esc(n.text)}</div></div>`).join("")}
         <textarea class="field" id="noteInput" rows="3" placeholder="Your thoughts, a decision, or a request for an agent…  (⌘↵ to post)">${esc(keepNote)}</textarea>
-        <div class="right"><button class="btn primary small" id="notePost">${ic("msg","sm")}Post note</button></div>
+        <div class="right">${micBtn("noteInput")}<button class="btn primary small" id="notePost">${ic("msg","sm")}Post note</button></div>
       </div>`;
 }
 const rows = (t,min,max,per=80) => Math.min(max,Math.max(min,Math.ceil((t||"").length/per)+(t||"").split("\n").length-1));
@@ -1037,9 +1055,9 @@ function renderExpDrawer(x,keepNote){
         <label>Related</label><div><input class="inp mono" id="dRelated" value="${esc((x.related||[]).join(", "))}" placeholder="item ids, e.g. E09, N03">
           ${(x.related||[]).length?`<div class="srcs" style="margin-top:6px">${x.related.map(r=>known.has(r)?`<span class="chip rel" data-open="${esc(r)}" title="${esc(S.items.find(i=>i.id===r).title)}">${esc(r)}</span>`:`<span class="chip tag">${esc(r)}?</span>`).join("")}</div>`:""}</div>
       </div>
-      <div class="sec"><h5>${ic("alert","sm")}Problem / question</h5><textarea class="field" id="dProblem" rows="${rows(x.problem,2,10)}" placeholder="Why run this? What do you expect?">${esc(x.problem)}</textarea></div>
-      <div class="sec"><h5>${ic("server","sm")}Setup</h5><textarea class="field mono" id="dSetup" rows="${rows(x.setup,2,12,90)}" placeholder="What changed vs. the main run: config, command, model, seeds…">${esc(x.setup)}</textarea></div>
-      <div class="sec"><h5>${ic("chart","sm")}Results</h5><textarea class="field mono resbox" id="dResults" rows="${rows(x.results,4,20,90)}" placeholder="Numbers, tables, what came out and what it means…">${esc(x.results)}</textarea></div>
+      <div class="sec"><h5>${ic("alert","sm")}Problem / question${micBtn("dProblem")}</h5><textarea class="field" id="dProblem" rows="${rows(x.problem,2,10)}" placeholder="Why run this? What do you expect?">${esc(x.problem)}</textarea></div>
+      <div class="sec"><h5>${ic("server","sm")}Setup${micBtn("dSetup")}</h5><textarea class="field mono" id="dSetup" rows="${rows(x.setup,2,12,90)}" placeholder="What changed vs. the main run: config, command, model, seeds…">${esc(x.setup)}</textarea></div>
+      <div class="sec"><h5>${ic("chart","sm")}Results${micBtn("dResults")}</h5><textarea class="field mono resbox" id="dResults" rows="${rows(x.results,4,20,90)}" placeholder="Numbers, tables, what came out and what it means…">${esc(x.results)}</textarea></div>
       ${(x.tags||[]).length?`<div class="sec"><h5>${ic("link","sm")}Tags</h5><div class="srcs">${x.tags.map(t=>`<span class="chip tag">#${esc(t)}</span>`).join("")}</div></div>`:""}
       ${notesHTML(x,keepNote)}
       <div class="sec" style="margin-top:30px;display:flex;justify-content:space-between;align-items:center">
@@ -1071,8 +1089,8 @@ function renderDrawer(id){
       </div>
       ${it.location?`<div class="sec"><h5>${ic("pin","sm")}Location</h5><div>${esc(it.location)}</div>${(it.tex||[]).length?`<div class="muted" style="font-size:12.5px;margin-top:3px">Files: ${it.tex.map(t=>`<code>${esc(t)}</code>`).join(", ")}</div>`:""}</div>`:""}
       ${it.anchor?`<div class="sec"><h5>${ic("quote","sm")}Quoted text</h5><p class="quote">${esc(it.anchor)}</p></div>`:""}
-      <div class="sec"><h5>${ic("alert","sm")}Problem</h5><textarea class="field" id="dIssue" rows="${Math.min(10,Math.max(3,Math.ceil((it.issue||"").length/80)))}" placeholder="What's wrong / what's needed…">${esc(it.issue)}</textarea></div>
-      <div class="sec"><h5>${ic("spark","sm")}Suggested fix</h5><textarea class="field fixbox" id="dFix" rows="${Math.min(14,Math.max(3,Math.ceil((it.fix||"").length/80)+ (it.fix||"").split("\n").length-1))}" placeholder="What to do…">${esc(it.fix)}</textarea></div>
+      <div class="sec"><h5>${ic("alert","sm")}Problem${micBtn("dIssue")}</h5><textarea class="field" id="dIssue" rows="${Math.min(10,Math.max(3,Math.ceil((it.issue||"").length/80)))}" placeholder="What's wrong / what's needed…">${esc(it.issue)}</textarea></div>
+      <div class="sec"><h5>${ic("spark","sm")}Suggested fix${micBtn("dFix")}</h5><textarea class="field fixbox" id="dFix" rows="${Math.min(14,Math.max(3,Math.ceil((it.fix||"").length/80)+ (it.fix||"").split("\n").length-1))}" placeholder="What to do…">${esc(it.fix)}</textarea></div>
       ${src?`<div class="sec"><h5>${ic("link","sm")}Sources</h5><div class="srcs">${src}</div></div>`:""}
       ${linked.length?`<div class="sec"><h5>${ic("flask","sm")}Experiments (${linked.length})</h5><div class="card list xside">${linked.map(x=>xrowHTML(x,true).replace("<span class=\"rmeta\">",`<span class="rmeta">${outChip(x.outcome)}`)).join("")}</div></div>`:""}
       ${notesHTML(it,keepNote)}
@@ -1084,9 +1102,73 @@ function renderDrawer(id){
 }
 function autosize(t){t.style.height="auto";t.style.height=t.scrollHeight+"px"}
 const upd = (id,fields)=>api({op:"update",id,fields});
+const FIELD_MAP={dTitle:"title",dIssue:"issue",dFix:"fix",dProblem:"problem",dSetup:"setup",dResults:"results",dWhere:"location",dRelated:"related"};
+
+/* ---------- voice input ---------- */
+let rec=null, busyMic=null, warnedHttp=false;
+const micBtn = t => `<button class="mic" data-mic="${t}" title="Dictate">${ic("mic","sm")}</button>`;
+function syncMic(){
+  document.querySelectorAll("[data-mic]").forEach(b=>{
+    const t=b.dataset.mic, on=rec&&rec.target===t, busy=busyMic===t;
+    b.classList.toggle("rec",!!on); b.classList.toggle("busy",busy);
+    if(on){const s=Math.floor((Date.now()-rec.t0)/1000);b.innerHTML=ic("stop","sm")+`${Math.floor(s/60)}:${String(s%60).padStart(2,"0")}`;b.title="Stop and transcribe (Esc cancels)"}
+    else if(busy){b.innerHTML=ic("loader","sm spin")+"transcribing";b.title="Transcribing…"}
+    else {b.innerHTML=ic("mic","sm");b.title="Dictate"+(window.isSecureContext?"":" (pick an audio file; live recording needs HTTPS)")}
+  });
+}
+async function micClick(target){
+  if(busyMic) return;
+  if(rec){ if(rec.target===target) stopRec(false); else toast("Already recording into another box","alert"); return }
+  if(!window.isSecureContext || !navigator.mediaDevices?.getUserMedia || !window.MediaRecorder){
+    if(!warnedHttp){warnedHttp=true;toast("Live recording needs HTTPS; pick an audio file instead","alert")}
+    const f=$("#voiceFile"); f.dataset.target=target; f.value=""; f.click(); return;
+  }
+  let stream;
+  try{ stream=await navigator.mediaDevices.getUserMedia({audio:true}) }
+  catch(e){ toast("Microphone blocked: "+e.message,"alert"); return }
+  const type=["audio/webm;codecs=opus","audio/webm","audio/mp4","audio/ogg"].find(t=>MediaRecorder.isTypeSupported(t))||"";
+  const mr=new MediaRecorder(stream,type?{mimeType:type}:{});
+  rec={target,mr,stream,chunks:[],t0:Date.now()};
+  mr.ondataavailable=e=>{if(e.data.size)rec?.chunks.push(e.data)};
+  mr.start(250);
+  rec.timer=setInterval(syncMic,500); rec.limit=setTimeout(()=>rec&&stopRec(false),5*60*1000);
+  syncMic();
+}
+function stopRec(cancel){
+  const r=rec; rec=null; clearInterval(r.timer); clearTimeout(r.limit);
+  r.mr.onstop=()=>{ r.stream.getTracks().forEach(t=>t.stop());
+    if(cancel){toast("Recording discarded","x");syncMic();return}
+    sendAudio(new Blob(r.chunks,{type:(r.mr.mimeType||"audio/webm")}),r.target); };
+  r.mr.stop(); syncMic();
+}
+async function sendAudio(blob,target){
+  if(!blob.size){toast("Nothing was recorded","alert");return}
+  busyMic=target; syncMic();
+  try{
+    const r=await fetch("/api/transcribe",{method:"POST",headers:{"Content-Type":blob.type||"audio/webm"},body:blob});
+    const j=await r.json().catch(()=>({error:"bad response"}));
+    if(!r.ok) throw new Error(j.error||r.status);
+    insertTranscript(target,j.text);
+  }catch(e){ toast(e.message,"alert") }
+  finally{ busyMic=null; syncMic() }
+}
+function insertTranscript(target,text){
+  if(!text){toast("Didn't catch any words","alert");return}
+  const el=document.getElementById(target);
+  if(!el){ navigator.clipboard?.writeText(text).catch(()=>{}); toast("Box closed; transcript copied to clipboard","copy"); return }
+  el.value += (el.value && !/\s$/.test(el.value) ? " " : "") + text;
+  el.dispatchEvent(new Event("input",{bubbles:true}));
+  const f=FIELD_MAP[target];
+  if(f && openId) upd(openId,{[f]:el.value.trim()});   // drawer fields: save now, a live refresh would otherwise drop it
+  else { el.focus(); el.setSelectionRange(el.value.length,el.value.length) }
+  toast("Transcribed","mic");
+}
+$("#voiceFile").onchange=e=>{const f=e.target.files[0]; if(f) sendAudio(f,e.target.dataset.target)};
+fetch("/api/config",{cache:"no-store"}).then(r=>r.json()).then(c=>document.body.classList.toggle("voice",!!c.voice)).catch(()=>{});
 
 /* ---------- events ---------- */
 document.addEventListener("click",e=>{
+  const mic=e.target.closest("[data-mic]"); if(mic){e.preventDefault();e.stopPropagation();micClick(mic.dataset.mic);return}
   if(e.target.closest("[data-newproj]")){openNewProject();return}
   if(view!=="project") return;
   const t=e.target.closest("[data-check],[data-id],[data-tab],[data-status],[data-cat],[data-pri],[data-owner],[data-group],[data-open],[data-tdone],[data-tdel],[data-tpromote],[data-set-status],[data-set-pri],[data-set-owner],[data-set-outcome]");
@@ -1130,7 +1212,7 @@ $("#drawer").addEventListener("change",e=>{
 });
 $("#drawer").addEventListener("focusout",e=>{
   const it=findRec(openId); if(!it) return;
-  const map={dTitle:"title",dIssue:"issue",dFix:"fix",dProblem:"problem",dSetup:"setup",dResults:"results",dWhere:"location",dRelated:"related"}; const f=map[e.target.id];
+  const f=FIELD_MAP[e.target.id];
   const curv=f==="related"?(it.related||[]).join(", "):(it[f]||"");
   if(f && e.target.value.trim()!==curv) upd(openId,{[f]:f==="related"?e.target.value.toUpperCase():e.target.value.trim()});
   else if(pendingRefresh && !$("#drawer").contains(e.relatedTarget)){pendingRefresh=false;refresh()}
@@ -1157,7 +1239,7 @@ $("#themeBtn").onclick=()=>{const r=document.documentElement;r.dataset.theme=isD
 try{const th=localStorage.getItem("bb.theme");if(th)document.documentElement.dataset.theme=th}catch(e){}
 syncThemeIcon();
 document.addEventListener("keydown",e=>{
-  if(e.key==="Escape"){ if(openId){closeDrawer();return} closeMenu(); }
+  if(e.key==="Escape"){ if(rec){stopRec(true);return} if(openId){closeDrawer();return} closeMenu(); }
   if(/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName) || e.metaKey || e.ctrlKey || $("#newDlg").open) return;
   if(e.key==="g"){go("#/");return}
   if(view!=="project") return;

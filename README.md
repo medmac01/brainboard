@@ -29,6 +29,22 @@ Upgrading from the single-board version: keep `BRAINBOARD_DATA=…/board.json`. 
 becomes the first project (in `projects/` next to it), and the old file is renamed `board.json.migrated`.
 Deleted projects go to `trash/`.
 
+## Voice input (optional)
+Every note, thought and drawer text field gets a mic button: click to record, click again to stop, and the
+transcript is appended to the field. The server forwards audio to any endpoint that speaks the OpenAI
+transcription API (`POST …/v1/audio/transcriptions`, multipart `file` + `model`):
+```bash
+export BRAINBOARD_ASR_URL=http://127.0.0.1:8010/v1/audio/transcriptions   # asr/server.py below
+# or: BRAINBOARD_ASR_URL=https://api.openai.com/v1/audio/transcriptions BRAINBOARD_ASR_KEY=sk-… BRAINBOARD_ASR_MODEL=whisper-1
+```
+`asr/server.py` serves [Qwen3-ASR-1.7B](https://huggingface.co/Qwen/Qwen3-ASR-1.7B) locally (needs ffmpeg and a
+GPU with ~8 GB in fp32; see its docstring for the install and `deploy/brainboard-asr.service` for systemd).
+
+Browsers only allow the microphone on **HTTPS or localhost**. To get HTTPS without a proxy, set
+`BRAINBOARD_TLS_PORT=2002 BRAINBOARD_TLS_CERT=cert.pem BRAINBOARD_TLS_KEY=key.pem`. The server then also
+listens on HTTPS, and the plain-HTTP port keeps working for the CLI. A self-signed cert is fine: accept the
+warning once. Over plain HTTP the mic button falls back to picking an audio file.
+
 ## Agents
 Install the skill into your harness (re-run after pulling to update):
 ```bash
