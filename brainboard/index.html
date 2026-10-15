@@ -4,133 +4,217 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>brainboard</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%235b5bd6'/%3E%3Crect x='7' y='8' width='5' height='16' rx='2' fill='white'/%3E%3Crect x='14' y='8' width='5' height='10' rx='2' fill='white' opacity='.8'/%3E%3Crect x='21' y='8' width='4' height='6' rx='2' fill='white' opacity='.6'/%3E%3C/svg%3E">
 <style>
 :root{
+  --pc:#5b5bd6;
   --bg:#f6f5f2; --panel:#ffffff; --panel2:#faf9f7; --line:#e6e3dd; --line2:#d9d5ce;
   --ink:#1f1e1c; --ink2:#55524c; --ink3:#8a867e;
-  --accent:#4f5bd5; --accent-soft:#eceefc;
+  --accent:var(--pc); --accent-soft:color-mix(in srgb,var(--accent) 12%,var(--panel));
   --p1:#c2412d; --p1-soft:#fbe9e5; --p2:#b7791f; --p2-soft:#fbf1df; --p3:#6b7280; --p3-soft:#eef0f2;
   --todo:#8a867e; --doing:#2f6fde; --decide:#a3389d; --blocked:#c2412d; --done:#2f8a57; --skip:#a8a29e;
   --shadow:0 1px 2px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.05);
-  --radius:12px;
+  --shadow-lg:0 2px 4px rgba(0,0,0,.05),0 12px 32px rgba(0,0,0,.09);
+  --radius:14px;
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
-    --bg:#151513; --panel:#1d1d1a; --panel2:#22221f; --line:#2f2e2a; --line2:#3a3934;
+    --bg:#141412; --panel:#1c1c19; --panel2:#22221f; --line:#2e2d29; --line2:#3a3934;
     --ink:#ecebe7; --ink2:#b6b3ab; --ink3:#86837b;
-    --accent:#8e97f2; --accent-soft:#262a45;
+    --accent:color-mix(in srgb,var(--pc) 72%,#fff); --accent-soft:color-mix(in srgb,var(--pc) 20%,var(--panel));
     --p1:#ef7b66; --p1-soft:#3a2420; --p2:#e2a94b; --p2-soft:#372c1a; --p3:#9ca3af; --p3-soft:#2a2c30;
     --todo:#9b978e; --doing:#6aa0f5; --decide:#d377cb; --blocked:#ef7b66; --done:#5cc48a; --skip:#6f6b66;
     --shadow:0 1px 2px rgba(0,0,0,.3),0 4px 16px rgba(0,0,0,.25);
+    --shadow-lg:0 2px 4px rgba(0,0,0,.3),0 12px 32px rgba(0,0,0,.4);
   }
 }
 :root[data-theme="dark"]{
-  --bg:#151513; --panel:#1d1d1a; --panel2:#22221f; --line:#2f2e2a; --line2:#3a3934;
+  --bg:#141412; --panel:#1c1c19; --panel2:#22221f; --line:#2e2d29; --line2:#3a3934;
   --ink:#ecebe7; --ink2:#b6b3ab; --ink3:#86837b;
-  --accent:#8e97f2; --accent-soft:#262a45;
+  --accent:color-mix(in srgb,var(--pc) 72%,#fff); --accent-soft:color-mix(in srgb,var(--pc) 20%,var(--panel));
   --p1:#ef7b66; --p1-soft:#3a2420; --p2:#e2a94b; --p2-soft:#372c1a; --p3:#9ca3af; --p3-soft:#2a2c30;
   --todo:#9b978e; --doing:#6aa0f5; --decide:#d377cb; --blocked:#ef7b66; --done:#5cc48a; --skip:#6f6b66;
   --shadow:0 1px 2px rgba(0,0,0,.3),0 4px 16px rgba(0,0,0,.25);
+  --shadow-lg:0 2px 4px rgba(0,0,0,.3),0 12px 32px rgba(0,0,0,.4);
 }
 *{box-sizing:border-box}
 html,body{margin:0}
 body{background:var(--bg);color:var(--ink);font:14.5px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;-webkit-font-smoothing:antialiased}
 button,input,select,textarea{font:inherit;color:inherit}
 button{cursor:pointer}
-a{color:var(--accent)}
+a{color:var(--accent);text-decoration:none}
 .wrap{max-width:1240px;margin:0 auto;padding:0 20px}
 @media (max-width:640px){.wrap{padding:0 16px}}
+.ic{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;vertical-align:-3px}
+.ic.sm{width:14px;height:14px;vertical-align:-2px}
+.ic.lg{width:20px;height:20px}
+.ic.xl{width:30px;height:30px;stroke-width:1.6}
 
 /* header */
-header{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
-.hrow{display:flex;align-items:center;gap:18px;padding:14px 0 10px;flex-wrap:wrap}
-.brand{display:flex;align-items:center;gap:12px;min-width:0}
-.ring{width:54px;height:54px;flex:none;position:relative}
-.ring svg{transform:rotate(-90deg)}
-.ring b{position:absolute;inset:0;display:grid;place-items:center;font-size:13px;font-weight:700}
-.brand h1{font-size:17px;margin:0;letter-spacing:-.01em}
-.brand .sub{color:var(--ink3);font-size:12.5px}
-.counts{display:flex;gap:8px;flex-wrap:wrap;margin-left:auto}
-.count{display:flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:4px 11px;font-size:12.5px;color:var(--ink2);cursor:pointer}
+header{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 86%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.hrow{display:flex;align-items:center;gap:10px;padding:12px 0;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:9px;color:var(--ink);font-weight:700;letter-spacing:-.02em;font-size:15.5px}
+.logo .mark{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,var(--accent),color-mix(in srgb,var(--accent) 55%,#e8a23a));display:grid;place-items:center;box-shadow:0 2px 6px color-mix(in srgb,var(--accent) 35%,transparent)}
+.logo .mark svg{width:17px;height:17px}
+.crumb{color:var(--line2);font-size:20px;font-weight:300;margin:0 2px}
+.switcher{position:relative;min-width:0}
+.swbtn{display:flex;align-items:center;gap:8px;border:1px solid transparent;background:none;border-radius:10px;padding:4px 8px 4px 4px;font-weight:600;max-width:46vw}
+.swbtn:hover,.swbtn[aria-expanded="true"]{background:var(--panel);border-color:var(--line)}
+.swbtn .t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.menu{position:absolute;top:calc(100% + 6px);left:0;min-width:280px;max-width:90vw;background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow-lg);padding:6px;display:none;z-index:30}
+.menu.on{display:block}
+.menu a,.menu button{display:flex;align-items:center;gap:10px;width:100%;padding:7px 8px;border-radius:8px;color:var(--ink);background:none;border:0;text-align:left;font-size:13.5px}
+.menu a:hover,.menu button:hover{background:var(--panel2)}
+.menu .cur{background:var(--accent-soft)}
+.menu .meta{margin-left:auto;color:var(--ink3);font-size:12px;font-variant-numeric:tabular-nums}
+.menu hr{border:0;border-top:1px solid var(--line);margin:5px 2px}
+.menu .t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.spacer{flex:1}
+.counts{display:flex;gap:6px;flex-wrap:wrap}
+.count{display:flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:3px 10px 3px 8px;font-size:12.5px;color:var(--ink2);cursor:pointer}
+.count:hover{border-color:var(--line2)}
 .count b{color:var(--ink);font-weight:650}
 .dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex:none}
-.tools{display:flex;gap:8px;align-items:center}
-.iconbtn{border:1px solid var(--line);background:var(--panel);border-radius:9px;padding:6px 10px;color:var(--ink2);font-size:13px}
+.tools{display:flex;gap:6px;align-items:center}
+.iconbtn{border:1px solid var(--line);background:var(--panel);border-radius:9px;width:32px;height:32px;display:grid;place-items:center;color:var(--ink2);padding:0}
 .iconbtn:hover{border-color:var(--line2);color:var(--ink)}
-.live{font-size:12px;color:var(--ink3);display:flex;align-items:center;gap:6px}
-.live .dot{background:var(--done)}
-.live.off .dot{background:var(--p1)}
-nav{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none}
-nav button{border:0;background:none;padding:9px 14px;border-bottom:2px solid transparent;color:var(--ink2);font-weight:550;white-space:nowrap}
+.live{font-size:12px;color:var(--ink3);display:flex;align-items:center;gap:6px;margin-right:4px}
+.live .dot{background:var(--done);box-shadow:0 0 0 3px color-mix(in srgb,var(--done) 22%,transparent)}
+.live.off .dot{background:var(--p1);box-shadow:none}
+nav{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;margin-bottom:-1px}
+nav button{border:0;background:none;padding:9px 12px;border-bottom:2px solid transparent;color:var(--ink2);font-weight:550;white-space:nowrap;display:flex;align-items:center;gap:7px}
+nav button:hover{color:var(--ink)}
 nav button.on{color:var(--ink);border-bottom-color:var(--accent)}
-nav button .n{font-size:11.5px;color:var(--ink3);margin-left:4px;font-weight:500}
+nav button.on .ic{color:var(--accent)}
+nav button .n{font-size:11px;color:var(--ink3);font-weight:600;background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:0 6px}
 
 main.wrap{padding-top:22px;padding-bottom:80px}
-.tab{display:none}.tab.on{display:block}
-h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink3);margin:0 0 10px;font-weight:650}
+.view{display:none}.view.on{display:block}
+.tab{display:none}.tab.on{display:block;animation:fade .18s ease}
+@keyframes fade{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+h2{font-size:12px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink3);margin:0 0 10px;font-weight:650;display:flex;align-items:center;gap:7px}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
 .muted{color:var(--ink3)}
-.empty{color:var(--ink3);padding:18px;text-align:center;font-size:13.5px}
+.empty{color:var(--ink3);padding:22px 18px;text-align:center;font-size:13.5px;display:flex;flex-direction:column;align-items:center;gap:8px}
+.empty .ic{color:var(--line2)}
+
+/* ptile = project emoji tile */
+.ptile{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;flex:none;font-size:16px;line-height:1;
+  background:color-mix(in srgb,var(--pc) 15%,var(--panel));border:1px solid color-mix(in srgb,var(--pc) 28%,var(--line))}
+.ptile.sm{width:22px;height:22px;border-radius:7px;font-size:12px}
+.ptile.lg{width:52px;height:52px;border-radius:14px;font-size:27px}
+
+/* ring */
+.ring{position:relative;flex:none}
+.ring svg{transform:rotate(-90deg);display:block}
+.ring b{position:absolute;inset:0;display:grid;place-items:center;font-size:12px;font-weight:700;font-variant-numeric:tabular-nums}
+.ring.big b{font-size:15px}
+
+/* home */
+.hero{padding:22px 24px;display:flex;gap:20px;align-items:center;position:relative;overflow:hidden}
+.hero::before{content:"";position:absolute;inset:0;background:radial-gradient(600px 160px at 0% 0%,color-mix(in srgb,var(--accent) 13%,transparent),transparent 70%);pointer-events:none}
+.hero>*{position:relative}
+.hero .big{font-size:21px;font-weight:680;letter-spacing:-.015em;margin:0 0 4px}
+.hero p{margin:0;color:var(--ink2)}
+.hero .grow{flex:1;min-width:0}
+.sechead{display:flex;align-items:center;gap:10px;margin:26px 0 12px}
+.sechead h2{margin:0}
+.sechead .right{margin:0 0 0 auto}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px}
+.pcard{display:flex;flex-direction:column;gap:10px;padding:16px;color:var(--ink);position:relative;overflow:hidden;transition:transform .15s,box-shadow .15s,border-color .15s;cursor:pointer}
+.pcard::before{content:"";position:absolute;left:0;right:0;top:0;height:3px;background:var(--pc)}
+.pcard:hover{transform:translateY(-2px);box-shadow:var(--shadow-lg);border-color:color-mix(in srgb,var(--pc) 35%,var(--line))}
+.pcard .top{display:flex;align-items:flex-start;gap:12px}
+.pcard h3{margin:0;font-size:15.5px;letter-spacing:-.01em;line-height:1.3}
+.pcard .desc{margin:2px 0 0;color:var(--ink3);font-size:13px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.pcard .stats{display:flex;gap:12px;flex-wrap:wrap;font-size:12.5px;color:var(--ink2)}
+.pcard .stats span{display:inline-flex;align-items:center;gap:5px}
+.pcard .stats b{color:var(--ink);font-weight:650}
+.pcard .foot{font-size:12px;color:var(--ink3);display:flex;align-items:center;gap:6px;margin-top:auto}
+.pcard.archived{opacity:.62}
+.pcard.new{border:1.5px dashed var(--line2);box-shadow:none;background:none;align-items:center;justify-content:center;color:var(--ink3);min-height:170px;font-weight:600}
+.pcard.new::before{display:none}
+.pcard.new:hover{color:var(--accent);border-color:var(--accent);transform:none;box-shadow:none}
+.track{height:6px;background:var(--line);border-radius:9px;overflow:hidden}
+.track i{display:block;height:100%;border-radius:9px;background:var(--pc);transition:width .4s}
+.wrow{display:flex;gap:10px;align-items:center;padding:10px 14px;cursor:pointer;color:var(--ink)}
+.wrow+.wrow{border-top:1px solid var(--line)}
+.wrow:hover{background:var(--panel2)}
+.wrow .t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wrow .pn{color:var(--ink3);font-size:12.5px;white-space:nowrap;max-width:30%;overflow:hidden;text-overflow:ellipsis}
+
+/* project hero */
+.phero{padding:18px 20px;display:flex;gap:16px;align-items:center;margin-bottom:20px;position:relative;overflow:hidden}
+.phero::before{content:"";position:absolute;inset:0;background:linear-gradient(100deg,color-mix(in srgb,var(--accent) 12%,transparent),transparent 55%);pointer-events:none}
+.phero>*{position:relative}
+.phero h1{font-size:20px;margin:0;letter-spacing:-.015em;line-height:1.25}
+.phero .desc{color:var(--ink2);margin:2px 0 0;font-size:13.5px}
+.phero .sub{color:var(--ink3);font-size:12.5px;margin-top:4px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.phero .grow{flex:1;min-width:0}
 
 /* focus layout */
 .focus{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:22px}
 @media (max-width:960px){.focus{grid-template-columns:1fr}}
 .stack>*+*{margin-top:22px}
-.hello{padding:18px 20px}
-.hello .big{font-size:20px;font-weight:650;letter-spacing:-.01em;margin:0 0 4px}
-.hello p{margin:0;color:var(--ink2)}
 .list{padding:4px}
 .row{display:grid;grid-template-columns:auto auto minmax(0,1fr) auto;gap:10px;align-items:center;padding:9px 12px;border-radius:9px;cursor:pointer}
 .row:hover{background:var(--panel2)}
 .row+.row{border-top:1px solid var(--line)}
 .row:hover+.row,.row:hover{border-color:transparent}
-.rid{font:600 11.5px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--ink3);width:30px}
+.rid{font:600 11.5px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--ink3);min-width:30px}
 .rtitle{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .row.done .rtitle{color:var(--ink3);text-decoration:line-through;text-decoration-color:var(--line2)}
 .rmeta{display:flex;gap:6px;align-items:center}
-.check{width:20px;height:20px;border-radius:6px;border:1.5px solid var(--line2);background:var(--panel);display:grid;place-items:center;padding:0;flex:none}
+.check{width:20px;height:20px;border-radius:6px;border:1.5px solid var(--line2);background:var(--panel);display:grid;place-items:center;padding:0;flex:none;color:transparent;transition:.12s}
+.check:hover{border-color:var(--done);color:color-mix(in srgb,var(--done) 60%,transparent)}
 .check.on{background:var(--done);border-color:var(--done);color:#fff}
-.check svg{width:12px;height:12px}
-.chip{font-size:11.5px;font-weight:600;border-radius:6px;padding:1px 7px;white-space:nowrap;display:inline-flex;align-items:center;gap:5px}
+.check .ic{width:12px;height:12px;stroke-width:3}
+.chip{font-size:11.5px;font-weight:600;border-radius:6px;padding:1px 7px;white-space:nowrap;display:inline-flex;align-items:center;gap:4px}
+.chip .ic{width:12px;height:12px;vertical-align:0}
 .chip.P1{background:var(--p1-soft);color:var(--p1)}
 .chip.P2{background:var(--p2-soft);color:var(--p2)}
 .chip.P3{background:var(--p3-soft);color:var(--p3)}
 .chip.st{background:var(--panel2);border:1px solid var(--line);color:var(--ink2);font-weight:550}
 .chip.cat{background:var(--accent-soft);color:var(--accent);font-weight:550}
 .chip.tag{background:var(--panel2);color:var(--ink3);font-weight:500;border:1px dashed var(--line2)}
-.owner{font-size:11px;font-weight:650;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;color:#fff;flex:none;text-transform:uppercase}
+.owner{font-size:10.5px;font-weight:700;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;color:#fff;flex:none;text-transform:uppercase;box-shadow:0 0 0 2px var(--panel)}
 .mini{width:54px;height:5px;border-radius:9px;background:var(--line);overflow:hidden;flex:none}
 .mini i{display:block;height:100%;background:var(--doing);border-radius:9px}
-.decide{padding:14px 16px;border-left:3px solid var(--decide);cursor:pointer}
+.decide{padding:14px 16px;border-left:3px solid var(--decide);cursor:pointer;transition:box-shadow .15s}
+.decide:hover{box-shadow:var(--shadow-lg)}
 .decide+.decide{margin-top:10px}
-.decide .t{font-weight:600;margin:2px 0 4px}
+.decide .t{font-weight:600;margin:4px 0 4px}
 .decide .q{color:var(--ink2);font-size:13.5px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 .bars{padding:14px 16px}
 .bar{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;margin:9px 0;font-size:13px;cursor:pointer}
-.bar .track{grid-column:1/-1;height:7px;background:var(--line);border-radius:9px;overflow:hidden}
-.bar .track i{display:block;height:100%;background:var(--accent);border-radius:9px;transition:width .4s}
+.bar:hover span:first-child{color:var(--accent)}
+.bar .track{grid-column:1/-1;height:7px}
+.bar .track i{background:var(--accent)}
 .bar span:last-child{color:var(--ink3);font-variant-numeric:tabular-nums}
 .quick{padding:14px}
 .quick textarea{width:100%;min-height:76px;resize:vertical;border:1px solid var(--line);background:var(--panel2);border-radius:9px;padding:10px 12px;outline:none}
-.quick textarea:focus,.field:focus{border-color:var(--accent)}
-.btn{border:1px solid var(--line2);background:var(--panel);border-radius:9px;padding:7px 13px;font-weight:550}
+.quick textarea:focus,.field:focus,.inp:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.btn{border:1px solid var(--line2);background:var(--panel);border-radius:9px;padding:7px 13px;font-weight:550;display:inline-flex;align-items:center;gap:7px}
 .btn:hover{border-color:var(--ink3)}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
 .btn.primary:hover{filter:brightness(1.07)}
 .btn.small{padding:4px 10px;font-size:12.5px}
+.btn.danger{color:var(--p1);border-color:color-mix(in srgb,var(--p1) 40%,var(--line))}
 .right{display:flex;justify-content:flex-end;gap:8px;margin-top:8px;align-items:center}
 
 /* items tab */
 .filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
-.search{flex:1 1 260px;min-width:200px;border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:8px 12px;outline:none}
-.search:focus{border-color:var(--accent)}
+.searchbox{flex:1 1 260px;min-width:200px;position:relative}
+.searchbox .ic{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--ink3)}
+.search{width:100%;border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:8px 12px 8px 34px;outline:none}
+.search:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--panel)}
 .seg button{border:0;background:none;padding:6px 10px;font-size:12.5px;color:var(--ink2);font-weight:550}
 .seg button+button{border-left:1px solid var(--line)}
 .seg button.on{background:var(--accent-soft);color:var(--accent)}
 .sel{border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:6px 10px;font-size:13px;max-width:100%}
 .group{margin-bottom:18px}
-.ghead{display:flex;align-items:center;gap:10px;margin:0 2px 8px;cursor:pointer;user-select:none}
+.ghead{display:flex;align-items:center;gap:8px;margin:0 2px 8px;cursor:pointer;user-select:none}
 .ghead h3{margin:0;font-size:14.5px}
 .ghead .gp{margin-left:auto;font-size:12px;color:var(--ink3);display:flex;align-items:center;gap:8px}
 .ghead .caret{transition:transform .2s;color:var(--ink3)}
@@ -139,11 +223,12 @@ h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink3
 
 /* board */
 .board{display:grid;grid-template-columns:repeat(5,minmax(220px,1fr));gap:12px;overflow-x:auto;padding-bottom:10px}
-.col{background:var(--panel2);border:1px solid var(--line);border-radius:var(--radius);padding:10px;min-height:200px}
+.col{background:var(--panel2);border:1px solid var(--line);border-radius:var(--radius);padding:10px;min-height:200px;transition:background .15s,border-color .15s}
 .col.over{border-color:var(--accent);background:var(--accent-soft)}
 .col h4{margin:2px 4px 10px;font-size:13px;display:flex;align-items:center;gap:7px}
-.col h4 span{color:var(--ink3);font-weight:500}
-.bcard{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:9px 10px;margin-bottom:8px;cursor:grab;box-shadow:var(--shadow)}
+.col h4 span{color:var(--ink3);font-weight:500;margin-left:auto;font-size:12px}
+.bcard{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:9px 10px;margin-bottom:8px;cursor:grab;box-shadow:var(--shadow);transition:box-shadow .15s,transform .15s}
+.bcard:hover{box-shadow:var(--shadow-lg);transform:translateY(-1px)}
 .bcard:active{cursor:grabbing}
 .bcard .t{font-size:13px;margin:4px 0 6px;line-height:1.35}
 .bcard .m{display:flex;gap:6px;align-items:center}
@@ -154,18 +239,48 @@ h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink3
 .th+.th{border-top:1px solid var(--line)}
 .th .txt{white-space:pre-wrap;word-wrap:break-word}
 .th.done .txt{color:var(--ink3);text-decoration:line-through}
-.th .who{font-size:12px;color:var(--ink3);margin-top:3px}
+.th .who{font-size:12px;color:var(--ink3);margin-top:3px;display:flex;align-items:center;gap:6px}
+.th .who .owner{width:16px;height:16px;font-size:9px;box-shadow:none}
 .th .acts{display:flex;gap:4px;opacity:.55}
 .th:hover .acts{opacity:1}
-.ghost{border:0;background:none;color:var(--ink3);padding:3px 6px;border-radius:6px;font-size:12.5px}
+.ghost{border:0;background:none;color:var(--ink3);padding:3px 6px;border-radius:6px;font-size:12.5px;display:inline-flex;align-items:center;gap:5px}
 .ghost:hover{background:var(--panel2);color:var(--ink)}
 
 /* activity */
-.act{display:grid;grid-template-columns:120px auto minmax(0,1fr);gap:10px;padding:8px 14px;font-size:13.5px;align-items:baseline}
+.act{display:grid;grid-template-columns:100px auto minmax(0,1fr);gap:10px;padding:9px 14px;font-size:13.5px;align-items:center}
 .act+.act{border-top:1px solid var(--line)}
 .act .when{color:var(--ink3);font-size:12px}
 .act a{cursor:pointer;font-family:ui-monospace,Menlo,monospace;font-size:12px}
-@media (max-width:640px){.act{grid-template-columns:1fr}.act .when{order:3}}
+@media (max-width:640px){.act{grid-template-columns:auto minmax(0,1fr)}.act .when{grid-column:1/-1}}
+
+/* settings + modal forms */
+.form{display:grid;grid-template-columns:130px minmax(0,1fr);gap:14px 16px;align-items:start}
+.form>label{font-size:12.5px;color:var(--ink3);font-weight:600;padding-top:8px}
+.inp{width:100%;border:1px solid var(--line);background:var(--panel2);border-radius:9px;padding:8px 11px;outline:none}
+textarea.inp{resize:vertical;line-height:1.5}
+.hint{font-size:12px;color:var(--ink3);margin-top:4px}
+.emojis{display:flex;flex-wrap:wrap;gap:5px}
+.emojis button{width:34px;height:34px;border-radius:9px;border:1px solid var(--line);background:var(--panel2);font-size:17px;padding:0;display:grid;place-items:center}
+.emojis button:hover{border-color:var(--line2)}
+.emojis button.on{border-color:var(--pc);background:color-mix(in srgb,var(--pc) 16%,var(--panel));box-shadow:0 0 0 2px color-mix(in srgb,var(--pc) 30%,transparent)}
+.emojis input{width:68px;text-align:center}
+.swatches{display:flex;gap:8px;flex-wrap:wrap}
+.swatches button{width:28px;height:28px;border-radius:50%;border:2px solid var(--panel);box-shadow:0 0 0 1px var(--line2);padding:0;display:grid;place-items:center;color:#fff}
+.swatches button.on{box-shadow:0 0 0 2px var(--ink)}
+.swatches .ic{width:14px;height:14px;stroke-width:3}
+.settings{max-width:820px}
+.settings .card{padding:20px 22px}
+.settings .card+.card{margin-top:18px}
+.settings pre{font:12.5px ui-monospace,Menlo,monospace;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;overflow-x:auto;margin:8px 0 0}
+.dzone{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.dzone+.dzone{border-top:1px solid var(--line);margin-top:14px;padding-top:14px}
+@media (max-width:640px){.form{grid-template-columns:1fr}.form>label{padding-top:0}}
+dialog{border:1px solid var(--line);border-radius:16px;background:var(--panel);color:var(--ink);padding:0;width:min(560px,calc(100vw - 32px));box-shadow:var(--shadow-lg)}
+dialog::backdrop{background:rgba(0,0,0,.3);backdrop-filter:blur(2px)}
+dialog .dh{padding:18px 22px 0;display:flex;align-items:center;gap:10px}
+dialog .dh h3{margin:0;font-size:17px}
+dialog .db{padding:16px 22px}
+dialog .df{padding:0 22px 18px;display:flex;justify-content:flex-end;gap:8px}
 
 /* drawer */
 .scrim{position:fixed;inset:0;background:rgba(0,0,0,.25);opacity:0;pointer-events:none;transition:opacity .2s;z-index:40}
@@ -179,165 +294,232 @@ h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink3
 .dtitle:focus{border-color:var(--accent)}
 .dbody{overflow-y:auto;padding:16px 20px 30px;flex:1}
 .ctrl{display:grid;grid-template-columns:96px minmax(0,1fr);gap:10px 12px;align-items:center;margin-bottom:18px}
-.ctrl label{font-size:12.5px;color:var(--ink3);font-weight:600}
+.ctrl>label{font-size:12.5px;color:var(--ink3);font-weight:600}
 .pills{display:flex;flex-wrap:wrap;gap:6px}
-.pill{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:3px 11px;font-size:12.5px;display:inline-flex;align-items:center;gap:6px;color:var(--ink2)}
-.pill.on{border-color:currentColor;font-weight:650}
+.pill{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:3px 11px 3px 8px;font-size:12.5px;display:inline-flex;align-items:center;gap:6px;color:var(--ink2)}
+.pill:hover{border-color:var(--line2)}
+.pill.on{border-color:currentColor;font-weight:650;background:color-mix(in srgb,currentColor 8%,var(--panel))}
+.pill .owner{width:18px;height:18px;font-size:9.5px;box-shadow:none}
 .slider{display:flex;align-items:center;gap:12px}
 .slider input{flex:1;accent-color:var(--accent)}
 .slider b{width:42px;text-align:right;font-variant-numeric:tabular-nums}
-.sec{margin-top:18px}
-.sec h5{margin:0 0 6px;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink3)}
+.sec{margin-top:20px}
+.sec h5{margin:0 0 7px;font-size:11.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink3);display:flex;align-items:center;gap:6px}
 .quote{border-left:3px solid var(--line2);padding:4px 0 4px 12px;color:var(--ink2);font-style:italic;margin:0}
 .field{width:100%;border:1px solid var(--line);background:var(--panel2);border-radius:9px;padding:9px 11px;outline:none;resize:vertical;line-height:1.5}
-.field.ro{background:none;border-color:transparent;padding:0;resize:none}
-.fixbox{background:color-mix(in srgb,var(--done) 9%,var(--panel));border-color:color-mix(in srgb,var(--done) 30%,var(--line))}
+.fixbox{background:color-mix(in srgb,var(--done) 8%,var(--panel));border-color:color-mix(in srgb,var(--done) 30%,var(--line))}
 .srcs{display:flex;flex-wrap:wrap;gap:6px}
-.note{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:9px 12px;margin-bottom:8px}
-.note .h{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--ink3);margin-bottom:3px}
+.note{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:9px 12px;margin-bottom:8px;border-left:3px solid var(--oc,var(--line2))}
+.note .h{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--ink3);margin-bottom:4px}
 .note .h b{color:var(--ink2)}
+.note .h .owner{width:18px;height:18px;font-size:9.5px;box-shadow:none}
 .note .x{white-space:pre-wrap;word-wrap:break-word;font-size:13.5px}
-.note.claude{border-left:3px solid var(--accent)}
-.note.me{border-left:3px solid var(--done)}
 .danger{color:var(--p1)}
-.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(30px);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:10px;font-size:13.5px;opacity:0;transition:.25s;z-index:60;pointer-events:none}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(30px);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:10px;font-size:13.5px;opacity:0;transition:.25s;z-index:60;pointer-events:none;display:flex;gap:8px;align-items:center}
 .toast.on{opacity:1;transform:translateX(-50%)}
 .help{max-width:780px}
-.help .card{padding:18px 22px}
+.help .card{padding:20px 24px}
+.help .card+.card{margin-top:18px}
 .help code,.help pre{font-family:ui-monospace,Menlo,monospace;font-size:12.5px;background:var(--panel2);border:1px solid var(--line);border-radius:6px}
 .help code{padding:1px 5px}
 .help pre{padding:12px 14px;overflow-x:auto}
+.help h2{margin-top:4px}
 kbd{font:11px ui-monospace,Menlo,monospace;border:1px solid var(--line2);border-bottom-width:2px;border-radius:5px;padding:0 5px;color:var(--ink2)}
+.proj-only{display:none}
+body.in-project .proj-only{display:flex}
 @media (max-width:640px){
   header{position:static}
-  .counts{margin-left:0}
+  .counts{display:none!important}
+  .live #liveTxt{display:none}
   .row{grid-template-columns:auto minmax(0,1fr) auto}
   .row .rid{display:none}
   .rmeta .chip.cat,.rmeta .mini{display:none}
   .ctrl{grid-template-columns:1fr}
+  .hero,.phero{flex-wrap:wrap}
+  .wrow .pn,.wrow .chip{display:none}
 }
 </style>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M6.3 17.7l-1.4 1.4M19.1 4.9l-1.4 1.4"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><path d="M9 6h12M9 12h12M9 18h12"/><path d="m3 6 1 1 2-2M3 12l1 1 2-2M3 18l1 1 2-2"/></symbol>
+  <symbol id="i-kanban" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2.5"/><path d="M8 7v7M12 7v4M16 7v9"/></symbol>
+  <symbol id="i-bulb" viewBox="0 0 24 24"><path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.2 1 2V17h6v-.3c0-.8.4-1.5 1-2A7 7 0 0 0 12 2z"/></symbol>
+  <symbol id="i-pulse" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></symbol>
+  <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="i-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></symbol>
+  <symbol id="i-msg" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></symbol>
+  <symbol id="i-archive" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8M10 12h4"/></symbol>
+  <symbol id="i-todo" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/></symbol>
+  <symbol id="i-doing" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor"/></symbol>
+  <symbol id="i-decide" viewBox="0 0 24 24"><path d="M12 13v8M12 3v3"/><path d="M5 6h12l3 3.5-3 3.5H5z"/></symbol>
+  <symbol id="i-blocked" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m5.7 5.7 12.6 12.6"/></symbol>
+  <symbol id="i-done" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></symbol>
+  <symbol id="i-skip" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12h8"/></symbol>
+  <symbol id="i-flag" viewBox="0 0 24 24"><path d="M4 22V4M4 4h13l-2 4 2 4H4"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
+  <symbol id="i-bot" viewBox="0 0 24 24"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 8V4M9 4h6M9 13v2M15 13v2"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-12a7 7 0 0 1 14 0c0 5.8-7 12-7 12z"/><circle cx="12" cy="9" r="2.5"/></symbol>
+  <symbol id="i-quote" viewBox="0 0 24 24"><path d="M6 7h4v4c0 3-2 5-4 6M14 7h4v4c0 3-2 5-4 6"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></symbol>
+  <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 15l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></symbol>
+  <symbol id="i-term" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2.5"/><path d="m6 9 3 3-3 3M12 15h6"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+  <symbol id="i-inbox" viewBox="0 0 24 24"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5h13L22 12v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6z"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+  <symbol id="i-logo" viewBox="0 0 24 24"><rect x="4" y="5" width="4" height="14" rx="1.6" fill="#fff" stroke="none"/><rect x="10" y="5" width="4" height="9" rx="1.6" fill="#fff" stroke="none" opacity=".82"/><rect x="16" y="5" width="4" height="5" rx="1.6" fill="#fff" stroke="none" opacity=".62"/></symbol>
+</svg>
+
 <header>
   <div class="wrap">
     <div class="hrow">
-      <div class="brand">
-        <div class="ring" title="Priority-weighted completion (P1 counts ×3, P2 ×2, P3 ×1)">
-          <svg width="54" height="54" viewBox="0 0 54 54"><circle cx="27" cy="27" r="23" fill="none" stroke="var(--line)" stroke-width="6"/><circle id="ringArc" cx="27" cy="27" r="23" fill="none" stroke="var(--accent)" stroke-width="6" stroke-linecap="round" stroke-dasharray="0 999"/></svg>
-          <b id="ringPct">0%</b>
-        </div>
-        <div>
-          <h1 id="appTitle">brainboard</h1>
-          <div class="sub" id="sub">loading…</div>
-        </div>
+      <a class="logo" href="#/" title="All projects"><span class="mark"><svg><use href="#i-logo"/></svg></span><span>brainboard</span></a>
+      <span class="crumb proj-only">/</span>
+      <div class="switcher proj-only" id="switcher">
+        <button class="swbtn" id="swBtn" aria-expanded="false"><span class="ptile sm" id="swIcon"></span><span class="t" id="swTitle"></span><svg class="ic sm muted"><use href="#i-down"/></svg></button>
+        <div class="menu" id="swMenu"></div>
       </div>
-      <div class="counts" id="counts"></div>
+      <div class="spacer"></div>
+      <div class="counts proj-only" id="counts"></div>
       <div class="tools">
         <span class="live" id="live"><span class="dot"></span><span id="liveTxt">live</span></span>
-        <button class="iconbtn" id="themeBtn" title="Toggle theme">◐</button>
+        <a class="iconbtn" href="#/help" title="How this works"><svg class="ic"><use href="#i-help"/></svg></a>
+        <button class="iconbtn" id="themeBtn" title="Toggle theme"><svg class="ic"><use id="themeIc" href="#i-moon"/></svg></button>
       </div>
     </div>
-    <nav id="nav">
-      <button data-tab="focus" class="on">Today</button>
-      <button data-tab="items">All items <span class="n" id="nItems"></span></button>
-      <button data-tab="board">Board</button>
-      <button data-tab="thoughts">Thoughts <span class="n" id="nThoughts"></span></button>
-      <button data-tab="activity">Activity</button>
-      <button data-tab="help">How this works</button>
+    <nav id="nav" class="proj-only">
+      <button data-tab="focus"><svg class="ic"><use href="#i-sun"/></svg>Today</button>
+      <button data-tab="items"><svg class="ic"><use href="#i-list"/></svg>Items <span class="n" id="nItems"></span></button>
+      <button data-tab="board"><svg class="ic"><use href="#i-kanban"/></svg>Board</button>
+      <button data-tab="thoughts"><svg class="ic"><use href="#i-bulb"/></svg>Thoughts <span class="n" id="nThoughts"></span></button>
+      <button data-tab="activity"><svg class="ic"><use href="#i-pulse"/></svg>Activity</button>
+      <button data-tab="settings"><svg class="ic"><use href="#i-sliders"/></svg>Settings</button>
     </nav>
   </div>
 </header>
 
 <main class="wrap">
-  <!-- TODAY -->
-  <section class="tab on" id="tab-focus">
-    <div class="focus">
-      <div class="stack">
-        <div class="card hello"><p class="big" id="greet"></p><p id="greetSub"></p></div>
-        <div>
-          <h2>Needs your decision</h2>
-          <div id="decideList"></div>
-        </div>
-        <div>
-          <h2>In progress</h2>
-          <div class="card list" id="doingList"></div>
-        </div>
-        <div>
-          <h2>Up next <span class="muted" style="text-transform:none;letter-spacing:0;font-weight:500">— highest priority first; tick the box when done</span></h2>
-          <div class="card list" id="nextList"></div>
-        </div>
-      </div>
-      <div class="stack">
-        <div class="card quick">
-          <h2>Brain dump</h2>
-          <textarea id="quickThought" placeholder="Anything on your mind — an idea, a worry, a question for Claude or the prof…  (⌘↵ to save)"></textarea>
-          <div class="right"><button class="btn primary small" id="quickSave">Save thought</button></div>
-        </div>
-        <div class="card bars"><h2>By category</h2><div id="catBars"></div></div>
-        <div class="card bars"><h2>By priority</h2><div id="priBars"></div></div>
-        <div class="card bars"><h2>By owner</h2><div id="ownerBars"></div></div>
-      </div>
+  <!-- HOME -->
+  <section class="view" id="view-home">
+    <div class="card hero">
+      <div class="grow"><p class="big" id="homeGreet"></p><p id="homeSub"></p></div>
+      <div class="ring big" id="homeRing"></div>
     </div>
+    <div id="homeWaiting"></div>
+    <div class="sechead"><h2><svg class="ic sm"><use href="#i-grid"/></svg>Projects</h2>
+      <div class="right"><label class="muted" style="font-size:12.5px;display:flex;gap:6px;align-items:center"><input type="checkbox" id="showArchived"> show archived</label>
+      <button class="btn small primary" data-newproj><svg class="ic sm"><use href="#i-plus"/></svg>New project</button></div></div>
+    <div class="pgrid" id="pgrid"></div>
   </section>
-
-  <!-- ITEMS -->
-  <section class="tab" id="tab-items">
-    <div class="filters">
-      <input class="search" id="q" placeholder="Search titles, quotes, fixes, notes…  ( / )">
-      <div class="seg" id="fPri"><button data-v="" class="on">All</button><button data-v="P1">P1</button><button data-v="P2">P2</button><button data-v="P3">P3</button></div>
-      <select class="sel" id="fStatus">
-        <option value="open">Open (not done)</option><option value="">Any status</option>
-        <option value="todo">To do</option><option value="doing">Doing</option><option value="decide">Needs decision</option>
-        <option value="blocked">Blocked</option><option value="done">Done</option><option value="skip">Won't fix</option>
-      </select>
-      <select class="sel" id="fOwner"><option value="">Anyone</option></select>
-      <select class="sel" id="fCat"><option value="">All categories</option></select>
-      <button class="btn small" id="addItem">+ New item</button>
-    </div>
-    <div id="groups"></div>
-  </section>
-
-  <!-- BOARD -->
-  <section class="tab" id="tab-board">
-    <p class="muted" style="margin:0 0 12px">Drag cards between columns. Click a card for details.</p>
-    <div class="board" id="board"></div>
-  </section>
-
-  <!-- THOUGHTS -->
-  <section class="tab" id="tab-thoughts">
-    <div class="thoughts">
-      <div class="card quick" style="margin-bottom:18px">
-        <textarea id="thoughtInput" placeholder="Write it down so you can stop holding it in your head…  (⌘↵ to save)"></textarea>
-        <div class="right"><label class="muted" style="font-size:12.5px"><input type="checkbox" id="showDoneThoughts"> show handled</label><button class="btn primary small" id="thoughtSave">Save</button></div>
-      </div>
-      <div class="card" id="thoughtList"></div>
-    </div>
-  </section>
-
-  <!-- ACTIVITY -->
-  <section class="tab" id="tab-activity"><div class="card" id="activityList"></div></section>
 
   <!-- HELP -->
-  <section class="tab help" id="tab-help">
+  <section class="view help" id="view-help">
     <div class="card">
-      <h2>How this works</h2>
-      <p>Everything lives in one board file on the server (<code>BRAINBOARD_DATA</code>). This page, Claude, and any other agent all read and write that same board, so it's the shared interface. Changes from anyone show up here within ~2 seconds.</p>
-      <p><b>Statuses.</b> <span class="chip st">To do</span> → <span class="chip st">Doing</span> → <span class="chip st">Done</span>. Use <span class="chip st">Needs decision</span> when something is waiting on <i>you</i> (or the prof) to choose, <span class="chip st">Blocked</span> when it's waiting on something else, and <span class="chip st">Won't fix</span> to drop it (dropped items don't count against your %).</p>
+      <h2><svg class="ic sm"><use href="#i-help"/></svg>How this works</h2>
+      <p>brainboard holds your <b>projects</b>. Each project has its own items, decisions, thoughts and activity, stored as one JSON file on the server. This page, Claude, Codex and any other agent read and write the same files, so the board is the shared interface between you and them. Changes from anyone show up here within ~2 seconds.</p>
+      <p><b>Statuses.</b> <span class="chip st"><svg class="ic"><use href="#i-todo"/></svg>To do</span> → <span class="chip st"><svg class="ic"><use href="#i-doing"/></svg>Doing</span> → <span class="chip st"><svg class="ic"><use href="#i-done"/></svg>Done</span>. Use <span class="chip st"><svg class="ic"><use href="#i-decide"/></svg>Needs decision</span> when something is waiting on <i>you</i> to choose, <span class="chip st"><svg class="ic"><use href="#i-blocked"/></svg>Blocked</span> when it's waiting on something else, and <span class="chip st"><svg class="ic"><use href="#i-skip"/></svg>Won't fix</span> to drop it (dropped items don't count against your %).</p>
       <p><b>The % ring</b> is priority-weighted: a P1 item counts 3×, P2 2×, P3 1×. Partial progress counts too, so move the slider as you go.</p>
-      <p><b>Talking to Claude.</b> Leave a note on an item (e.g. “Claude: draft the fix for this”) or drop a thought in the brain dump, then tell Claude “check the board”. Claude replies in the same note thread.</p>
-      <p><b>Shortcuts.</b> <kbd>/</kbd> search · <kbd>t</kbd> new thought · <kbd>Esc</kbd> close panel · <kbd>⌘</kbd><kbd>↵</kbd> save a text box</p>
-      <h2 style="margin-top:22px">For agents (CLI)</h2>
-<pre>python3 brainboard/cli.py summary
-python3 brainboard/cli.py next                 # what to work on
-python3 brainboard/cli.py list --status todo --priority P1
-python3 brainboard/cli.py show E03
-python3 brainboard/cli.py set E03 status=doing progress=40 owner=claude
-python3 brainboard/cli.py note E03 "Changed C_Tac text in proposed_framework.tex:52"
-python3 brainboard/cli.py thought "Question for the prof: …"
-BRAINBOARD_WHO=codex python3 brainboard/cli.py …   # sign as another agent</pre>
-      <p class="muted">Remote use: set <code>BRAINBOARD_URL</code> + <code>BRAINBOARD_PASSWORD</code>, or put them in <code>~/.config/brainboard/config.json</code>. Full protocol: <code>AGENTS.md</code> in the repo. Sources: <span id="srcInfo"></span></p>
+      <p><b>Talking to agents.</b> Leave a note on an item (“Claude: draft the fix for this”) or drop a thought, then tell the agent “check the board”. It answers in the same note thread.</p>
+      <p><b>Shortcuts.</b> <kbd>/</kbd> search · <kbd>t</kbd> new thought · <kbd>g</kbd> all projects · <kbd>Esc</kbd> close panel · <kbd>⌘</kbd><kbd>↵</kbd> save a text box</p>
     </div>
+    <div class="card">
+      <h2><svg class="ic sm"><use href="#i-bot"/></svg>Connect an agent</h2>
+      <p>Install the <b>brainboard skill</b> into your agent harness from a clone of the repo:</p>
+<pre>./install-skill.sh claude      # ~/.claude/skills/brainboard
+./install-skill.sh codex       # ~/.codex/skills/brainboard
+./install-skill.sh agents      # ~/.agents/skills/brainboard (other harnesses)
+./install-skill.sh --dir PATH  # anywhere else; --snippet prints an AGENTS.md block instead</pre>
+      <p>Then point it at this server once with <code>bb config --url <span id="helpUrl"></span></code>. The agent can now do:</p>
+<pre>bb projects                       # list projects (* = current)
+bb -p SLUG inbox                  # notes and thoughts waiting for the agent
+bb -p SLUG next                   # what to work on
+bb -p SLUG set E03 status=doing progress=40
+bb -p SLUG note E03 "Changed …"
+echo SLUG > .brainboard           # pin a repo to a project</pre>
+    </div>
+  </section>
+
+  <!-- PROJECT -->
+  <section class="view" id="view-project">
+    <div class="card phero" id="phero"></div>
+
+    <section class="tab" id="tab-focus">
+      <div class="focus">
+        <div class="stack">
+          <div>
+            <h2><svg class="ic sm" style="color:var(--decide)"><use href="#i-decide"/></svg>Needs your decision</h2>
+            <div id="decideList"></div>
+          </div>
+          <div>
+            <h2><svg class="ic sm" style="color:var(--doing)"><use href="#i-doing"/></svg>In progress</h2>
+            <div class="card list" id="doingList"></div>
+          </div>
+          <div>
+            <h2><svg class="ic sm"><use href="#i-arrow"/></svg>Up next <span class="muted" style="text-transform:none;letter-spacing:0;font-weight:500">· highest priority first; tick the box when done</span></h2>
+            <div class="card list" id="nextList"></div>
+          </div>
+        </div>
+        <div class="stack">
+          <div class="card quick">
+            <h2><svg class="ic sm"><use href="#i-bulb"/></svg>Brain dump</h2>
+            <textarea id="quickThought" placeholder="Anything on your mind: an idea, a worry, a question for an agent…  (⌘↵ to save)"></textarea>
+            <div class="right"><button class="btn primary small" id="quickSave"><svg class="ic sm"><use href="#i-plus"/></svg>Save thought</button></div>
+          </div>
+          <div class="card bars"><h2><svg class="ic sm"><use href="#i-folder"/></svg>By category</h2><div id="catBars"></div></div>
+          <div class="card bars"><h2><svg class="ic sm"><use href="#i-flag"/></svg>By priority</h2><div id="priBars"></div></div>
+          <div class="card bars"><h2><svg class="ic sm"><use href="#i-user"/></svg>By owner</h2><div id="ownerBars"></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="tab" id="tab-items">
+      <div class="filters">
+        <div class="searchbox"><svg class="ic"><use href="#i-search"/></svg><input class="search" id="q" placeholder="Search titles, quotes, fixes, notes…  ( / )"></div>
+        <div class="seg" id="fPri"><button data-v="" class="on">All</button><button data-v="P1">P1</button><button data-v="P2">P2</button><button data-v="P3">P3</button></div>
+        <select class="sel" id="fStatus">
+          <option value="open">Open (not done)</option><option value="">Any status</option>
+          <option value="todo">To do</option><option value="doing">Doing</option><option value="decide">Needs decision</option>
+          <option value="blocked">Blocked</option><option value="done">Done</option><option value="skip">Won't fix</option>
+        </select>
+        <select class="sel" id="fOwner"><option value="">Anyone</option></select>
+        <select class="sel" id="fCat"><option value="">All categories</option></select>
+        <button class="btn small primary" id="addItem"><svg class="ic sm"><use href="#i-plus"/></svg>New item</button>
+      </div>
+      <div id="groups"></div>
+    </section>
+
+    <section class="tab" id="tab-board">
+      <p class="muted" style="margin:0 0 12px">Drag cards between columns. Click a card for details.</p>
+      <div class="board" id="board"></div>
+    </section>
+
+    <section class="tab" id="tab-thoughts">
+      <div class="thoughts">
+        <div class="card quick" style="margin-bottom:18px">
+          <textarea id="thoughtInput" placeholder="Write it down so you can stop holding it in your head…  (⌘↵ to save)"></textarea>
+          <div class="right"><label class="muted" style="font-size:12.5px;margin-right:auto;display:flex;gap:6px;align-items:center"><input type="checkbox" id="showDoneThoughts"> show handled</label><button class="btn primary small" id="thoughtSave"><svg class="ic sm"><use href="#i-plus"/></svg>Save</button></div>
+        </div>
+        <div class="card" id="thoughtList"></div>
+      </div>
+    </section>
+
+    <section class="tab" id="tab-activity"><div class="card" id="activityList"></div></section>
+
+    <section class="tab settings" id="tab-settings"></section>
   </section>
 </main>
 
@@ -345,118 +527,230 @@ BRAINBOARD_WHO=codex python3 brainboard/cli.py …   # sign as another agent</pr
 <aside class="drawer" id="drawer" aria-hidden="true"></aside>
 <div class="toast" id="toast"></div>
 
+<dialog id="newDlg">
+  <form method="dialog" id="newForm">
+    <div class="dh"><span class="ptile" id="npPreview"></span><h3>New project</h3></div>
+    <div class="db form">
+      <label for="npTitle">Title</label><input class="inp" id="npTitle" required maxlength="120" placeholder="e.g. Thesis chapter 3">
+      <label for="npDesc">Description</label><input class="inp" id="npDesc" maxlength="500" placeholder="One line on what this is (optional)">
+      <label>Icon</label><div class="emojis" id="npIcons"></div>
+      <label>Color</label><div class="swatches" id="npColors"></div>
+      <label for="npTpl">Categories</label><div><select class="sel" id="npTpl"></select><div class="hint" id="npTplHint"></div></div>
+    </div>
+    <div class="df"><button class="btn" value="cancel" formnovalidate>Cancel</button><button class="btn primary" value="ok" id="npCreate"><svg class="ic sm"><use href="#i-plus"/></svg>Create project</button></div>
+  </form>
+</dialog>
+
 <script>
 const STATUS = {
-  todo:{label:"To do",c:"var(--todo)"}, doing:{label:"Doing",c:"var(--doing)"},
-  decide:{label:"Needs decision",c:"var(--decide)"}, blocked:{label:"Blocked",c:"var(--blocked)"},
-  done:{label:"Done",c:"var(--done)"}, skip:{label:"Won't fix",c:"var(--skip)"}
+  todo:{label:"To do",c:"var(--todo)",i:"todo"}, doing:{label:"Doing",c:"var(--doing)",i:"doing"},
+  decide:{label:"Needs decision",c:"var(--decide)",i:"decide"}, blocked:{label:"Blocked",c:"var(--blocked)",i:"blocked"},
+  done:{label:"Done",c:"var(--done)",i:"done"}, skip:{label:"Won't fix",c:"var(--skip)",i:"skip"}
 };
 const PRI = {P1:"High",P2:"Medium",P3:"Low"};
 const PW = {P1:3,P2:2,P3:1};
-const OWNER_C = {me:"#2f8a57",claude:"#c46a3a",agent:"#4f5bd5",prof:"#a3389d"};
+const OWNER_C = {me:"#2f8a57",claude:"#c46a3a",codex:"#1f8f8a",agent:"#4f5bd5",prof:"#a3389d"};
+const COLORS = ["#5b5bd6","#2f6fde","#0e8f87","#2f8a57","#b7791f","#d0602b","#d1456a","#8b4fd6"];
+const EMOJIS = ["📌","🧠","🧪","📄","🎓","🛠️","🚀","🐛","📊","🔬","🛡️","🌱","💡","🎯","📚","✍️","🧭","🗂️","🏠","💼","🎨","⚙️","🔥","⭐"];
+const TEMPLATES = {
+  general:{label:"General",cats:["Inbox","Build","Research","Writing","Admin"]},
+  paper:{label:"Research paper",cats:["Inbox","Writing","Experiments","Figures & tables","Related work","Admin"]},
+  software:{label:"Software",cats:["Inbox","Features","Bugs","Infra","Docs"]},
+  personal:{label:"Personal",cats:["Inbox","Health","Errands","Learning","Admin"]},
+};
+const TABS = ["focus","items","board","thoughts","activity","settings"];
 const ME = "me";
-let S = null, version = null, openId = null, pendingRefresh = false;
-const ui = load("ui",{tab:"focus",pri:"",status:"open",owner:"",cat:"",closed:{}});
+let P = [], pVersion = null;          // project list (home)
+let cur = null, S = null, version = null, openId = null, pendingRefresh = false, view = "home";
+const ui = load("ui",{tab:{},pri:"",status:"open",owner:"",cat:"",closed:{},archived:false});
+if(typeof ui.tab!=="object") ui.tab={};
 
 function load(k,d){try{return Object.assign({},d,JSON.parse(localStorage.getItem("bb."+k)||"{}"))}catch(e){return d}}
 function persist(){try{localStorage.setItem("bb.ui",JSON.stringify(ui))}catch(e){}}
 const $ = s => document.querySelector(s);
 const esc = s => String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const ic = (n,cls="") => `<svg class="ic ${cls}"><use href="#i-${n}"/></svg>`;
 const ago = iso => { if(!iso) return ""; const s=(Date.now()-new Date(iso))/1000;
   if(s<60) return "just now"; if(s<3600) return Math.floor(s/60)+" min ago"; if(s<86400) return Math.floor(s/3600)+" h ago";
   return new Date(iso).toLocaleDateString(undefined,{month:"short",day:"numeric"}); };
-function toast(t){const el=$("#toast");el.textContent=t;el.classList.add("on");clearTimeout(toast._t);toast._t=setTimeout(()=>el.classList.remove("on"),1800)}
+function toast(t,icon="check"){const el=$("#toast");el.innerHTML=ic(icon,"sm")+esc(t);el.classList.add("on");clearTimeout(toast._t);toast._t=setTimeout(()=>el.classList.remove("on"),1800)}
 const pct = it => it.status==="done"?100:(it.progress||0);
 function weighted(items){const live=items.filter(i=>i.status!=="skip");const tot=live.reduce((a,i)=>a+PW[i.priority],0);return tot?live.reduce((a,i)=>a+PW[i.priority]*pct(i),0)/tot:0}
 const isOpen = i => i.status!=="done" && i.status!=="skip";
 const byPri = (a,b)=> (a.priority>b.priority)-(a.priority<b.priority) || catIdx(a)-catIdx(b) || a.id.localeCompare(b.id);
 const allCats = () => { const c=[...(S.meta.categories||[])]; S.items.forEach(i=>{if(i.category&&!c.includes(i.category))c.push(i.category)}); return c; };
 const catIdx = i => { const c=allCats(); const k=c.indexOf(i.category); return k<0?99:k; };
-
-async function api(op){
-  op.who = ME;
-  const r = await fetch("/api/op",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(op)});
-  const j = await r.json();
-  if(!r.ok){toast("⚠ "+(j.error||"error"));return}
-  S=j; version=j.version; render();
+const ownerColor = o => OWNER_C[o] || `hsl(${[...o].reduce((a,c)=>a*31+c.charCodeAt(0),7)%360} 45% 48%)`;
+const ptile = (p,cls="") => `<span class="ptile ${cls}" style="--pc:${esc(p.color||COLORS[0])}">${esc(p.icon||"📌")}</span>`;
+function ring(p,size=54,stroke=6,color="var(--accent)"){
+  const r=(size-stroke)/2, C=2*Math.PI*r;
+  return `<div class="ring ${size>60?"big":""}" style="width:${size}px;height:${size}px"><svg width="${size}" height="${size}"><circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="var(--line)" stroke-width="${stroke}"/><circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="${color}" stroke-width="${stroke}" stroke-linecap="round" stroke-opacity="${p<0.5?0:1}" stroke-dasharray="${C*p/100} ${C}" style="transition:stroke-dasharray .5s"/></svg><b>${Math.round(p)}%</b></div>`;
 }
+const pOpen = p => p.stats.total-p.stats.counts.done-p.stats.counts.skip;
+
+async function http(url,body){
+  const r=await fetch(url,body?{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(Object.assign({who:ME},body))}:{cache:"no-store"});
+  const j=await r.json().catch(()=>({error:"bad response"}));
+  if(!r.ok) throw new Error(j.error||r.status);
+  return j;
+}
+async function api(op){
+  try{ S=await http(`/api/p/${cur}/op`,op); version=S.version; render(); }
+  catch(e){ toast(e.message,"alert") }
+}
+async function loadProjects(){ const j=await http("/api/projects"); P=j.projects; pVersion=j.version; }
 async function refresh(){
   try{
-    const r=await fetch("/api/state",{cache:"no-store"}); S=await r.json(); version=S.version; setLive(true); render();
-  }catch(e){setLive(false)}
+    if(view==="project"){ S=await http(`/api/p/${cur}/state`); version=S.version; }
+    else { await loadProjects(); }
+    setLive(true); renderAll();
+  }catch(e){
+    if(/no such project/.test(e.message)){ toast("That project no longer exists","alert"); location.hash="#/"; return }
+    setLive(false);
+  }
 }
 async function poll(){
   try{
-    const r=await fetch("/api/version",{cache:"no-store"}); const j=await r.json(); setLive(true);
-    if(j.version!==version){
+    const url=view==="project"?`/api/p/${cur}/version`:"/api/version";
+    const j=await http(url); setLive(true);
+    if(j.version!==(view==="project"?version:pVersion)){
       const a=document.activeElement;
-      if(a && $("#drawer").contains(a) && (a.tagName==="TEXTAREA"||a.tagName==="INPUT")) pendingRefresh=true;
+      if(a && (a.tagName==="TEXTAREA"||a.tagName==="INPUT") && ($("#drawer").contains(a)||$("#tab-settings").contains(a))) pendingRefresh=true;
       else await refresh();
     }
   }catch(e){setLive(false)}
 }
-function setLive(ok){$("#live").classList.toggle("off",!ok);$("#liveTxt").textContent=ok?"live":"offline — is server.py running?"}
+function setLive(ok){$("#live").classList.toggle("off",!ok);$("#liveTxt").textContent=ok?"live":"offline"}
+
+/* ---------- routing: #/  ·  #/help  ·  #/<slug>[/<tab>][/<item>] ---------- */
+function parseHash(){
+  const parts=location.hash.replace(/^#\/?/,"").split("/").filter(Boolean).map(decodeURIComponent);
+  if(!parts.length) return {view:"home"};
+  if(parts[0]==="help") return {view:"help"};
+  const isItem=s=>/^[A-Z]+\d+$/.test(s||"");
+  const tab=TABS.includes(parts[1])?parts[1]:null;
+  return {view:"project",slug:parts[0],tab,item:isItem(parts[1])?parts[1]:isItem(parts[2])?parts[2]:null};
+}
+async function route(){
+  const r=parseHash();
+  closeMenu();
+  if(r.view!=="project"){
+    if(openId) closeDrawer(true);
+    view=r.view; cur=null; S=null; document.documentElement.style.removeProperty("--pc");
+    document.body.classList.remove("in-project");
+    showView(r.view); await refresh(); window.scrollTo({top:0}); return;
+  }
+  const switching=cur!==r.slug;
+  view="project";
+  if(switching){ if(openId) closeDrawer(true); cur=r.slug; S=null; version=null; $("#q").value=""; await refresh(); if(!S) return; }
+  document.body.classList.add("in-project");
+  showView("project");
+  const tab=r.tab||ui.tab[cur]||"focus";
+  ui.tab[cur]=tab; persist();
+  document.querySelectorAll("#nav button").forEach(b=>b.classList.toggle("on",b.dataset.tab===tab));
+  document.querySelectorAll("#view-project .tab").forEach(s=>s.classList.toggle("on",s.id==="tab-"+tab));
+  renderAll();
+  if(r.item && S.items.some(i=>i.id===r.item)) openDrawer(r.item,false);
+  else if(switching) window.scrollTo({top:0});
+}
+function showView(v){document.querySelectorAll(".view").forEach(s=>s.classList.toggle("on",s.id==="view-"+v))}
+function go(hash){ if(location.hash===hash) route(); else location.hash=hash; }
+const curTab = () => ui.tab[cur]||"focus";
+function itemHash(id){ return `#/${encodeURIComponent(cur)}/${curTab()}${id?"/"+id:""}` }
 
 /* ---------- render ---------- */
-function render(){
-  if(!S) return;
-  const items=S.items;
-  $("#appTitle").textContent=S.meta.title||"brainboard";
-  document.title=(S.meta.title||"brainboard")+" · "+Math.round(weighted(items))+"%";
-  const p=weighted(items), C=2*Math.PI*23;
-  $("#ringArc").setAttribute("stroke-dasharray",(C*p/100)+" "+C);
-  $("#ringPct").textContent=Math.round(p)+"%";
-  const done=items.filter(i=>i.status==="done").length;
-  $("#sub").textContent=`${done} of ${items.length} done · updated ${ago(S.meta.updated)} by ${S.meta.updated_by||"?"}`;
-  $("#counts").innerHTML=["decide","doing","todo","blocked","done"].map(s=>{
-    const n=items.filter(i=>i.status===s).length;
-    return `<span class="count" data-status="${s}"><span class="dot" style="background:${STATUS[s].c}"></span>${STATUS[s].label} <b>${n}</b></span>`}).join("");
-  $("#nItems").textContent=items.filter(isOpen).length+" open";
-  const openTh=(S.thoughts||[]).filter(t=>!t.done).length;
-  $("#nThoughts").textContent=openTh||"";
-  const src=S.meta.sources||{};
-  $("#srcInfo").innerHTML=Object.entries(src).map(([k,v])=>`<b>${k}</b> = ${esc(v.desc)} (<code>${esc(v.file)}</code>)`).join(" · ");
-  renderFocus(); renderItems(); renderBoard(); renderThoughts(); renderActivity();
-  if(openId) renderDrawer(openId);
+function renderAll(){
+  if(view==="home") renderHome();
+  else if(view==="help") { $("#helpUrl").textContent=location.origin; document.title="How this works · brainboard"; }
+  else if(S) render();
 }
 
-function ownerDot(o){ if(!o) return ""; return `<span class="owner" title="${esc(o)}" style="background:${OWNER_C[o]||"#888"}">${esc(o[0])}</span>` }
+function renderHome(){
+  document.title="brainboard";
+  const live=P.filter(p=>!p.archived);
+  const h=new Date().getHours();
+  $("#homeGreet").textContent=(h<12?"Good morning":h<18?"Good afternoon":"Good evening")+".";
+  const dec=live.reduce((a,p)=>a+p.decide.length,0), open=live.reduce((a,p)=>a+pOpen(p),0);
+  $("#homeSub").innerHTML=live.length?`${live.length} active project${live.length>1?"s":""} · ${open} open item${open===1?"":"s"}`+(dec?` · <b>${dec} waiting on your decision</b>`:" · nothing waiting on you")
+    :"No projects yet. Create one to get started.";
+  const tot=live.reduce((a,p)=>a+p.stats.total,0);
+  const avg=tot?live.reduce((a,p)=>a+p.stats.percent*p.stats.total,0)/tot:0;
+  $("#homeRing").outerHTML=`<div id="homeRing" title="All active projects, weighted by item count">${ring(avg,74,7)}</div>`;
+  const waiting=live.flatMap(p=>p.decide.map(d=>({p,d})));
+  $("#homeWaiting").innerHTML=waiting.length?`<div class="sechead"><h2>${ic("decide","sm")}Waiting on your decision</h2></div>
+    <div class="card">${waiting.map(({p,d})=>`<a class="wrow" href="#/${encodeURIComponent(p.slug)}/focus/${d.id}">${ptile(p,"sm")}<span class="rid">${d.id}</span><span class="chip ${d.priority}">${d.priority}</span><span class="t">${esc(d.title)}</span><span class="pn">${esc(p.title)}</span>${ic("right","sm muted")}</a>`).join("")}</div>`:"";
+  $("#showArchived").checked=!!ui.archived;
+  const shown=P.filter(p=>ui.archived||!p.archived);
+  $("#pgrid").innerHTML=shown.map(p=>{
+    const s=p.stats, c=s.counts;
+    return `<a class="card pcard ${p.archived?"archived":""}" href="#/${encodeURIComponent(p.slug)}" style="--pc:${esc(p.color)}">
+      <div class="top">${ptile(p,"lg")}<div style="flex:1;min-width:0"><h3>${esc(p.title)}</h3>${p.description?`<p class="desc">${esc(p.description)}</p>`:`<p class="desc">${esc(p.slug)}</p>`}</div>${ring(s.percent,44,5,"var(--pc)")}</div>
+      <div class="stats"><span>${ic("todo","sm")}<b>${pOpen(p)}</b> open</span>${c.decide?`<span style="color:var(--decide)">${ic("decide","sm")}<b>${c.decide}</b> to decide</span>`:""}${c.doing?`<span style="color:var(--doing)">${ic("doing","sm")}<b>${c.doing}</b> doing</span>`:""}${s.open_thoughts?`<span>${ic("bulb","sm")}<b>${s.open_thoughts}</b></span>`:""}${p.archived?`<span>${ic("archive","sm")}archived</span>`:""}</div>
+      <div class="track"><i style="width:${s.percent}%"></i></div>
+      <div class="foot">${ic("clock","sm")}updated ${ago(p.updated)} by ${esc(p.updated_by||"?")}<span style="margin-left:auto">${c.done}/${s.total} done</span></div></a>`}).join("")
+    +`<button class="card pcard new" data-newproj>${ic("plus","xl")}New project</button>`;
+}
+
+function render(){
+  const items=S.items, m=S.meta;
+  document.documentElement.style.setProperty("--pc",m.color||COLORS[0]);
+  const p=S.stats?S.stats.percent:weighted(items);
+  document.title=`${m.icon||""} ${m.title} · ${Math.round(p)}%`;
+  $("#swIcon").textContent=m.icon||"📌"; $("#swIcon").style.setProperty("--pc",m.color);
+  $("#swTitle").textContent=m.title;
+  const done=items.filter(i=>i.status==="done").length;
+  $("#phero").innerHTML=`<span class="ptile lg">${esc(m.icon||"📌")}</span>
+    <div class="grow"><h1>${esc(m.title)}${m.archived?` <span class="chip st">${ic("archive")}archived</span>`:""}</h1>${m.description?`<p class="desc">${esc(m.description)}</p>`:""}
+    <div class="sub" id="pSub">${heroSub()}</div></div>
+    <div title="Priority-weighted completion (P1 counts ×3, P2 ×2, P3 ×1)">${ring(p,64,7)}</div>`;
+  $("#counts").innerHTML=["decide","doing","todo","blocked","done"].map(s=>{
+    const n=items.filter(i=>i.status===s).length;
+    return `<span class="count" data-status="${s}" title="Show ${STATUS[s].label.toLowerCase()} items"><span style="color:${STATUS[s].c};display:flex">${ic(STATUS[s].i,"sm")}</span>${STATUS[s].label} <b>${n}</b></span>`}).join("");
+  $("#nItems").textContent=items.filter(isOpen).length;
+  const openTh=(S.thoughts||[]).filter(t=>!t.done).length;
+  $("#nThoughts").textContent=openTh||""; $("#nThoughts").style.display=openTh?"":"none";
+  const t=curTab();
+  if(t==="focus") renderFocus(); if(t==="items") renderItems(); if(t==="board") renderBoard();
+  if(t==="thoughts") renderThoughts(); if(t==="activity") renderActivity(); if(t==="settings") renderSettings();
+  if(openId) renderDrawer(openId);
+}
+function heroSub(){
+  const items=S.items, done=items.filter(i=>i.status==="done").length;
+  return `${ic("done","sm")}${done} of ${items.length} done <span class="muted">·</span> ${ic("clock","sm")}updated ${ago(S.meta.updated)} by ${esc(S.meta.updated_by||"?")}`;
+}
+
+function ownerDot(o){ if(!o) return ""; return `<span class="owner" title="${esc(o)}" style="background:${ownerColor(o)}">${esc(o[0])}</span>` }
+const stChip = s => `<span class="chip st" style="color:${STATUS[s].c}">${ic(STATUS[s].i)}${STATUS[s].label}</span>`;
 function rowHTML(it,opts={}){
   const d=it.status==="done";
   return `<div class="row ${d?"done":""}" data-id="${it.id}">
-    <button class="check ${d?"on":""}" data-check="${it.id}" title="${d?"Mark not done":"Mark done"}">${d?'<svg viewBox="0 0 12 12"><path d="M2.5 6.2l2.3 2.3 4.7-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>':""}</button>
+    <button class="check ${d?"on":""}" data-check="${it.id}" title="${d?"Mark not done":"Mark done"}">${ic("check")}</button>
     <span class="rid">${it.id}</span>
     <span class="rtitle" title="${esc(it.title)}">${esc(it.title)}</span>
     <span class="rmeta">
+      ${(it.notes||[]).length?`<span class="muted" style="font-size:12px;display:flex;align-items:center;gap:3px" title="${it.notes.length} notes">${ic("msg","sm")}${it.notes.length}</span>`:""}
       ${opts.cat!==false?`<span class="chip cat">${esc(it.category)}</span>`:""}
-      ${it.status!=="todo"&&it.status!=="done"?`<span class="chip st" style="color:${STATUS[it.status].c}">${STATUS[it.status].label}</span>`:""}
+      ${it.status!=="todo"&&it.status!=="done"?stChip(it.status):""}
       ${it.progress>0&&!d?`<span class="mini" title="${it.progress}%"><i style="width:${it.progress}%"></i></span>`:""}
       <span class="chip ${it.priority}">${it.priority}</span>${ownerDot(it.owner)}
     </span></div>`;
 }
+const emptyHTML = (icon,text) => `<div class="empty">${ic(icon,"xl")}<span>${text}</span></div>`;
 
 function renderFocus(){
-  const items=S.items, open=items.filter(isOpen);
-  const h=new Date().getHours();
-  const p1=open.filter(i=>i.priority==="P1").length;
-  $("#greet").textContent=(h<12?"Good morning":h<18?"Good afternoon":"Good evening")+". One thing at a time.";
-  const dec=items.filter(i=>i.status==="decide").length;
-  $("#greetSub").innerHTML= open.length? `${open.length} open items, ${p1} of them high priority. `+
-     (dec?`Start with the <b>${dec} decision${dec>1?"s":""}</b> below — each one unblocks several other items.`:`Pick the top item in <b>Up next</b>.`)
-     : "Everything is done. 🎉";
+  const items=S.items;
   const decide=items.filter(i=>i.status==="decide").sort(byPri);
   $("#decideList").innerHTML=decide.length?decide.map(it=>`<div class="card decide" data-id="${it.id}">
-     <div style="display:flex;gap:6px;align-items:center"><span class="rid">${it.id}</span><span class="chip ${it.priority}">${it.priority}</span><span class="chip cat">${esc(it.category)}</span>${ownerDot(it.owner)}</div>
+     <div style="display:flex;gap:6px;align-items:center"><span class="rid">${it.id}</span><span class="chip ${it.priority}">${it.priority}</span><span class="chip cat">${esc(it.category)}</span>${ownerDot(it.owner)}${(it.notes||[]).length?`<span class="muted" style="margin-left:auto;font-size:12px;display:flex;gap:4px;align-items:center">${ic("msg","sm")}${it.notes.length}</span>`:""}</div>
      <div class="t">${esc(it.title)}</div>
      <div class="q">${esc((it.notes&&it.notes.length?it.notes[it.notes.length-1].text:it.issue))}</div></div>`).join("")
-     :`<div class="card empty">Nothing waiting on you.</div>`;
+     :`<div class="card">${emptyHTML("done","Nothing waiting on you.")}</div>`;
   const doing=items.filter(i=>i.status==="doing"||i.status==="blocked").sort(byPri);
-  $("#doingList").innerHTML=doing.length?doing.map(i=>rowHTML(i)).join(""):`<div class="empty">Nothing in progress. Start something from “Up next”.</div>`;
+  $("#doingList").innerHTML=doing.length?doing.map(i=>rowHTML(i)).join(""):emptyHTML("doing","Nothing in progress. Start something from “Up next”.");
   const next=items.filter(i=>i.status==="todo").sort(byPri).slice(0,7);
-  $("#nextList").innerHTML=next.length?next.map(i=>rowHTML(i)).join(""):`<div class="empty">Queue is empty.</div>`;
-  // bars
+  $("#nextList").innerHTML=next.length?next.map(i=>rowHTML(i)).join(""):emptyHTML("inbox",items.length?"Queue is empty.":"No items yet. Add one from the Items tab, or let an agent add them.");
   const cats=allCats().filter(c=>items.some(i=>i.category===c));
-  $("#catBars").innerHTML=cats.map(c=>barHTML(c,items.filter(i=>i.category===c),"cat")).join("");
+  $("#catBars").innerHTML=cats.map(c=>barHTML(c,items.filter(i=>i.category===c),"cat")).join("")||`<div class="muted" style="font-size:13px">No items yet.</div>`;
   $("#priBars").innerHTML=["P1","P2","P3"].map(p=>barHTML(`${p} · ${PRI[p]}`,items.filter(i=>i.priority===p),"pri",p)).join("");
   const owners=[...new Set(items.map(i=>i.owner||""))].sort();
   $("#ownerBars").innerHTML=owners.map(o=>barHTML(o||"unassigned",items.filter(i=>(i.owner||"")===o),"owner",o)).join("");
@@ -480,46 +774,146 @@ function filtered(){
 }
 function renderItems(){
   const fc=$("#fCat"), fo=$("#fOwner");
-  if(fc.options.length-1!==allCats().length){ fc.length=1; allCats().forEach(c=>fc.add(new Option(c,c))) }
-  const owners=["none",...(S.meta.people||[])];
-  if(fo.options.length<=1){ owners.forEach(o=>fo.add(new Option(o==="none"?"Unassigned":o,o))) }
+  fc.length=1; allCats().forEach(c=>fc.add(new Option(c,c)));
+  fo.length=1; ["none",...(S.meta.people||[])].forEach(o=>fo.add(new Option(o==="none"?"Unassigned":o,o)));
+  if(ui.cat && !allCats().includes(ui.cat)) ui.cat="";
   fc.value=ui.cat; fo.value=ui.owner; $("#fStatus").value=ui.status;
   document.querySelectorAll("#fPri button").forEach(b=>b.classList.toggle("on",b.dataset.v===ui.pri));
   const its=filtered();
   const cats=allCats().filter(c=>its.some(i=>i.category===c));
+  const ck=c=>cur+"/"+c;
   $("#groups").innerHTML=cats.length?cats.map(c=>{
     const g=its.filter(i=>i.category===c).sort(byPri);
     const all=S.items.filter(i=>i.category===c), d=all.filter(i=>!isOpen(i)).length;
-    return `<div class="group ${ui.closed[c]?"closed":""}"><div class="ghead" data-group="${esc(c)}"><span class="caret">▾</span><h3>${esc(c)}</h3>
-      <span class="gp">${d}/${all.length} done<span class="mini"><i style="width:${weighted(all)}%"></i></span></span></div>
+    return `<div class="group ${ui.closed[ck(c)]?"closed":""}"><div class="ghead" data-group="${esc(ck(c))}"><span class="caret">${ic("down","sm")}</span>${ic("folder","sm muted")}<h3>${esc(c)}</h3>
+      <span class="gp">${d}/${all.length} done<span class="mini"><i style="width:${weighted(all)}%;background:var(--accent)"></i></span></span></div>
       <div class="card list">${g.map(i=>rowHTML(i,{cat:false})).join("")}</div></div>`}).join("")
-    :`<div class="card empty">No items match these filters.</div>`;
+    :`<div class="card">${emptyHTML("search",S.items.length?"No items match these filters.":"No items yet. Click “New item” to add the first one.")}</div>`;
 }
 function renderBoard(){
   const cols=["todo","doing","decide","blocked","done"];
   $("#board").innerHTML=cols.map(s=>{
     const its=S.items.filter(i=>s==="done"?(i.status==="done"||i.status==="skip"):i.status===s).sort(byPri);
-    return `<div class="col" data-col="${s}"><h4><span class="dot" style="background:${STATUS[s].c}"></span>${STATUS[s].label} <span>${its.length}</span></h4>
-      ${its.map(i=>`<div class="bcard" draggable="true" data-id="${i.id}"><div class="m"><span class="rid">${i.id}</span><span class="chip ${i.priority}">${i.priority}</span>${i.status==="skip"?'<span class="chip st">won\'t fix</span>':""}<span style="margin-left:auto">${ownerDot(i.owner)}</span></div>
+    return `<div class="col" data-col="${s}"><h4><span style="color:${STATUS[s].c};display:flex">${ic(STATUS[s].i)}</span>${STATUS[s].label} <span>${its.length}</span></h4>
+      ${its.map(i=>`<div class="bcard" draggable="true" data-id="${i.id}"><div class="m"><span class="rid">${i.id}</span><span class="chip ${i.priority}">${i.priority}</span>${i.status==="skip"?'<span class="chip st">won\'t fix</span>':""}<span style="margin-left:auto;display:flex;gap:6px;align-items:center">${(i.notes||[]).length?`<span class="muted" style="font-size:11.5px;display:flex;gap:3px;align-items:center">${ic("msg","sm")}${i.notes.length}</span>`:""}${ownerDot(i.owner)}</span></div>
         <div class="t">${esc(i.title)}</div>${i.progress>0&&i.status!=="done"?`<div class="mini" style="width:100%"><i style="width:${i.progress}%"></i></div>`:""}</div>`).join("")}</div>`}).join("");
 }
 function renderThoughts(){
   const show=$("#showDoneThoughts").checked;
   const ts=(S.thoughts||[]).filter(t=>show||!t.done);
   $("#thoughtList").innerHTML=ts.length?ts.map(t=>`<div class="th ${t.done?"done":""}">
-     <button class="check ${t.done?"on":""}" data-tdone="${t.id}" title="Handled">${t.done?'<svg viewBox="0 0 12 12"><path d="M2.5 6.2l2.3 2.3 4.7-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>':""}</button>
-     <div><div class="txt">${esc(t.text)}</div><div class="who">${esc(t.who)} · ${ago(t.at)}</div></div>
-     <div class="acts"><button class="ghost" data-tpromote="${t.id}" title="Turn into a tracked item">→ item</button><button class="ghost" data-tdel="${t.id}" title="Delete">✕</button></div></div>`).join("")
-    :`<div class="empty">Your head is clear. Nothing here.</div>`;
+     <button class="check ${t.done?"on":""}" data-tdone="${t.id}" title="Handled">${ic("check")}</button>
+     <div><div class="txt">${esc(t.text)}</div><div class="who">${ownerDot(t.who)}${esc(t.who)} · ${ago(t.at)}</div></div>
+     <div class="acts"><button class="ghost" data-tpromote="${t.id}" title="Turn into a tracked item">${ic("arrow","sm")}item</button><button class="ghost" data-tdel="${t.id}" title="Delete">${ic("trash","sm")}</button></div></div>`).join("")
+    :emptyHTML("bulb","Your head is clear. Nothing here.");
 }
 function renderActivity(){
   const a=(S.activity||[]).slice(0,200);
-  $("#activityList").innerHTML=a.length?a.map(x=>`<div class="act"><span class="when" title="${esc(x.at)}">${ago(x.at)}</span><span>${ownerDot(x.who)}</span><span>${x.item?`<a data-open="${x.item}">${x.item}</a> `:""}${esc(x.text)}</span></div>`).join(""):`<div class="empty">No activity yet.</div>`;
+  $("#activityList").innerHTML=a.length?a.map(x=>`<div class="act"><span class="when" title="${esc(x.at)}">${ago(x.at)}</span><span>${ownerDot(x.who)}</span><span>${x.item?`<a data-open="${x.item}">${x.item}</a> `:""}${esc(x.text)}</span></div>`).join(""):emptyHTML("pulse","No activity yet.");
 }
 
+/* ---------- settings ---------- */
+let draft=null;
+function renderSettings(){
+  const m=S.meta, el=$("#tab-settings");
+  if(el.contains(document.activeElement) && draft) return;
+  draft={icon:m.icon||"📌",color:m.color||COLORS[0]};
+  const host=location.origin;
+  el.innerHTML=`<div class="card"><h2>${ic("sliders","sm")}Project</h2>
+    <div class="form">
+      <label for="sTitle">Title</label><input class="inp" id="sTitle" maxlength="120" value="${esc(m.title)}">
+      <label for="sDesc">Description</label><input class="inp" id="sDesc" maxlength="500" value="${esc(m.description||"")}" placeholder="One line on what this is">
+      <label>Icon</label><div class="emojis" id="sIcons">${emojiPicker(draft.icon)}</div>
+      <label>Color</label><div class="swatches" id="sColors">${swatches(draft.color)}</div>
+      <label for="sCats">Categories</label><div><textarea class="inp" id="sCats" rows="5">${esc((m.categories||[]).join("\n"))}</textarea><div class="hint">One per line. New items go into the first one.</div></div>
+      <label for="sPeople">People & agents</label><div><input class="inp" id="sPeople" value="${esc((m.people||[]).join(", "))}"><div class="hint">Comma-separated; these are the owners you can assign. Agents sign as their name (e.g. claude, codex).</div></div>
+      <label></label><div><button class="btn primary" id="sSave">${ic("check","sm")}Save changes</button></div>
+    </div></div>
+    <div class="card"><h2>${ic("bot","sm")}Agents</h2>
+      <p style="margin:0">Slug: <code>${esc(cur)}</code>. With the brainboard skill installed, an agent works on this project with <code>-p ${esc(cur)}</code>, or you can pin a repo to it:</p>
+      <pre>bb -p ${esc(cur)} inbox     # what's waiting for the agent
+bb -p ${esc(cur)} next
+echo ${esc(cur)} > .brainboard   # in a repo: makes this the default project there</pre>
+      <p class="muted" style="font-size:12.5px;margin:8px 0 0">Server: <code>${esc(host)}</code> · see <a href="#/help">How this works</a> to install the skill.</p></div>
+    <div class="card"><h2>${ic("alert","sm")}Danger zone</h2>
+      <div class="dzone"><div><b>${m.archived?"Unarchive":"Archive"} project</b><div class="hint">${m.archived?"Bring it back to the projects page.":"Hides it from the projects page and agents' default choice. Nothing is deleted."}</div></div>
+        <button class="btn" id="sArchive">${ic("archive","sm")}${m.archived?"Unarchive":"Archive"}</button></div>
+      <div class="dzone"><div><b>Delete project</b><div class="hint">Moves the project file to the server's <code>trash/</code> folder.</div></div>
+        <button class="btn danger" id="sDelete">${ic("trash","sm")}Delete</button></div>
+    </div>`;
+}
+function emojiPicker(sel){
+  return EMOJIS.map(e=>`<button type="button" class="${e===sel?"on":""}" data-emoji="${e}">${e}</button>`).join("")
+    +`<input class="inp" data-emoji-custom maxlength="8" placeholder="other" value="${EMOJIS.includes(sel)?"":esc(sel)}">`;
+}
+function swatches(sel){ return COLORS.map(c=>`<button type="button" class="${c===sel?"on":""}" data-color="${c}" style="background:${c}" title="${c}">${c===sel?ic("check"):""}</button>`).join("") }
+function pickerClick(e,root,state,onchange){
+  const em=e.target.closest("[data-emoji]"), co=e.target.closest("[data-color]");
+  if(em){state.icon=em.dataset.emoji;root.querySelectorAll("[data-emoji]").forEach(b=>b.classList.toggle("on",b===em));root.querySelector("[data-emoji-custom]").value="";onchange&&onchange()}
+  if(co){state.color=co.dataset.color;root.querySelectorAll("[data-color]").forEach(b=>{b.classList.toggle("on",b===co);b.innerHTML=b===co?ic("check"):""});root.querySelectorAll(".emojis").forEach(x=>x.style.setProperty("--pc",state.color));onchange&&onchange()}
+}
+function pickerInput(e,root,state,onchange){
+  if(e.target.matches("[data-emoji-custom]") && e.target.value.trim()){state.icon=e.target.value.trim();root.querySelectorAll("[data-emoji]").forEach(b=>b.classList.remove("on"));onchange&&onchange()}
+}
+$("#tab-settings").addEventListener("click",async e=>{
+  pickerClick(e,$("#tab-settings"),draft);
+  if(e.target.closest("#sSave")){
+    const f={title:$("#sTitle").value,description:$("#sDesc").value,icon:draft.icon,color:draft.color,categories:$("#sCats").value,people:$("#sPeople").value};
+    document.activeElement.blur(); await api({op:"meta",fields:f}); toast("Project saved");
+  }
+  if(e.target.closest("#sArchive")){ const a=!S.meta.archived; await api({op:"meta",fields:{archived:a}}); toast(a?"Archived":"Unarchived","archive"); }
+  if(e.target.closest("#sDelete")){
+    if(prompt(`Type the project slug (${cur}) to delete it:`)!==cur) return;
+    try{ await http("/api/projects",{op:"delete",slug:cur}); toast("Project moved to trash","trash"); go("#/"); }catch(err){toast(err.message,"alert")}
+  }
+});
+$("#tab-settings").addEventListener("input",e=>pickerInput(e,$("#tab-settings"),draft));
+
+/* ---------- project switcher + new project ---------- */
+async function openMenu(){
+  try{ await loadProjects() }catch(e){}
+  const live=P.filter(p=>!p.archived||p.slug===cur);
+  $("#swMenu").innerHTML=live.map(p=>`<a href="#/${encodeURIComponent(p.slug)}" class="${p.slug===cur?"cur":""}">${ptile(p,"sm")}<span class="t">${esc(p.title)}</span><span class="meta">${Math.round(p.stats.percent)}%</span></a>`).join("")
+    +`<hr><a href="#/">${ic("grid","sm muted")}All projects</a><button data-newproj>${ic("plus","sm muted")}New project…</button>`;
+  $("#swMenu").classList.add("on"); $("#swBtn").setAttribute("aria-expanded","true");
+}
+function closeMenu(){ $("#swMenu").classList.remove("on"); $("#swBtn").setAttribute("aria-expanded","false") }
+$("#swBtn").onclick=e=>{ e.stopPropagation(); $("#swMenu").classList.contains("on")?closeMenu():openMenu() };
+document.addEventListener("click",e=>{ if(!e.target.closest("#switcher")) closeMenu() });
+
+const np={icon:"📌",color:COLORS[0]};
+function openNewProject(){
+  closeMenu();
+  np.icon=EMOJIS[Math.floor(Math.random()*8)]; np.color=COLORS[P.length%COLORS.length];
+  $("#npTitle").value=""; $("#npDesc").value="";
+  $("#npIcons").innerHTML=emojiPicker(np.icon); $("#npColors").innerHTML=swatches(np.color);
+  $("#npTpl").innerHTML=Object.entries(TEMPLATES).map(([k,t])=>`<option value="${k}">${t.label}</option>`).join("");
+  npUpdate(); $("#newDlg").showModal(); $("#npTitle").focus();
+}
+function npUpdate(){
+  const pv=$("#npPreview"); pv.textContent=np.icon; pv.style.setProperty("--pc",np.color);
+  $("#npIcons").style.setProperty("--pc",np.color);
+  $("#npTplHint").textContent=TEMPLATES[$("#npTpl").value].cats.join(" · ")+"  (editable later in Settings)";
+}
+$("#newForm").addEventListener("click",e=>pickerClick(e,$("#newForm"),np,npUpdate));
+$("#newForm").addEventListener("input",e=>pickerInput(e,$("#newForm"),np,npUpdate));
+$("#npTpl").onchange=npUpdate;
+$("#newDlg").addEventListener("close",async()=>{
+  if($("#newDlg").returnValue!=="ok") return;
+  const title=$("#npTitle").value.trim(); if(!title) return;
+  try{
+    const j=await http("/api/projects",{op:"create",fields:{title,description:$("#npDesc").value,icon:np.icon,color:np.color,categories:TEMPLATES[$("#npTpl").value].cats}});
+    P=j.projects; toast("Project created"); go(`#/${encodeURIComponent(j.slug)}/focus`);
+  }catch(e){toast(e.message,"alert")}
+});
+$("#showArchived").onchange=e=>{ui.archived=e.target.checked;persist();renderHome()};
+
 /* ---------- drawer ---------- */
-function openDrawer(id){openId=id;renderDrawer(id);$("#drawer").classList.add("on");$("#scrim").classList.add("on");$("#drawer").setAttribute("aria-hidden","false")}
-function closeDrawer(){openId=null;$("#drawer").classList.remove("on");$("#scrim").classList.remove("on");$("#drawer").setAttribute("aria-hidden","true");if(pendingRefresh){pendingRefresh=false;refresh()}}
+function openDrawer(id,push=true){openId=id;renderDrawer(id);$("#drawer").classList.add("on");$("#scrim").classList.add("on");$("#drawer").setAttribute("aria-hidden","false");
+  if(push) history.replaceState(null,"",itemHash(id))}
+function closeDrawer(silent){openId=null;$("#drawer").classList.remove("on");$("#scrim").classList.remove("on");$("#drawer").setAttribute("aria-hidden","true");
+  if(!silent && cur) history.replaceState(null,"",itemHash());
+  if(pendingRefresh){pendingRefresh=false;refresh()}}
 function renderDrawer(id){
   const it=S.items.find(i=>i.id===id); if(!it){closeDrawer();return}
   const D=$("#drawer");
@@ -527,29 +921,29 @@ function renderDrawer(id){
   const src=(it.sources||[]).map(s=>{const k=s[0];const m=S.meta.sources?.[k];return `<span class="chip tag" title="${esc(m?m.desc:"")}">${esc(m?m.label:k)} · ${esc(s.slice(1).replace(/^-/,""))}</span>`}).join("");
   D.innerHTML=`<div class="dhead"><span class="rid">${it.id}</span>
       <textarea class="dtitle" id="dTitle" rows="1">${esc(it.title)}</textarea>
-      <button class="iconbtn" id="dClose" title="Close (Esc)">✕</button></div>
+      <button class="iconbtn" id="dClose" title="Close (Esc)">${ic("x")}</button></div>
     <div class="dbody">
       <div class="ctrl">
-        <label>Status</label><div class="pills">${Object.entries(STATUS).map(([k,v])=>`<button class="pill ${it.status===k?"on":""}" data-set-status="${k}" style="${it.status===k?`color:${v.c}`:""}"><span class="dot" style="background:${v.c}"></span>${v.label}</button>`).join("")}</div>
+        <label>Status</label><div class="pills">${Object.entries(STATUS).map(([k,v])=>`<button class="pill ${it.status===k?"on":""}" data-set-status="${k}" style="${it.status===k?`color:${v.c}`:""}"><span style="color:${v.c};display:flex">${ic(v.i,"sm")}</span>${v.label}</button>`).join("")}</div>
         <label>Progress</label><div class="slider"><input type="range" min="0" max="100" step="10" value="${pct(it)}" id="dProg"><b id="dProgV">${pct(it)}%</b></div>
-        <label>Priority</label><div class="pills">${Object.keys(PRI).map(p=>`<button class="pill ${it.priority===p?"on":""}" data-set-pri="${p}" style="${it.priority===p?`color:var(--${p.toLowerCase()})`:""}">${p} · ${PRI[p]}</button>`).join("")}</div>
-        <label>Owner</label><div class="pills">${["",...(S.meta.people||[])].map(o=>`<button class="pill ${(it.owner||"")===o?"on":""}" data-set-owner="${o}">${o?ownerDot(o)+esc(o):"nobody"}</button>`).join("")}</div>
+        <label>Priority</label><div class="pills">${Object.keys(PRI).map(p=>`<button class="pill ${it.priority===p?"on":""}" data-set-pri="${p}" style="${it.priority===p?`color:var(--${p.toLowerCase()})`:""}">${ic("flag","sm")}${p} · ${PRI[p]}</button>`).join("")}</div>
+        <label>Owner</label><div class="pills">${["",...(S.meta.people||[])].map(o=>`<button class="pill ${(it.owner||"")===o?"on":""}" data-set-owner="${esc(o)}">${o?ownerDot(o)+esc(o):"nobody"}</button>`).join("")}</div>
         <label>Category</label><select class="sel" id="dCat">${allCats().map(c=>`<option ${c===it.category?"selected":""}>${esc(c)}</option>`).join("")}</select>
-        ${it.kind?`<label>Type</label><div><span class="chip st">${esc(it.kind)}</span> ${(it.tags||[]).map(t=>`<span class="chip tag">#${esc(t)}</span>`).join(" ")}</div>`:""}
+        ${it.kind||(it.tags||[]).length?`<label>Type</label><div>${it.kind?`<span class="chip st">${esc(it.kind)}</span> `:""}${(it.tags||[]).map(t=>`<span class="chip tag">#${esc(t)}</span>`).join(" ")}</div>`:""}
       </div>
-      ${it.location?`<div class="sec"><h5>Where in the paper</h5><div>${esc(it.location)}</div>${(it.tex||[]).length?`<div class="muted" style="font-size:12.5px;margin-top:3px">Files: ${it.tex.map(t=>`<code>${esc(t)}</code>`).join(", ")}</div>`:""}</div>`:""}
-      ${it.anchor?`<div class="sec"><h5>Text the reviewers flagged</h5><p class="quote">${esc(it.anchor)}</p></div>`:""}
-      <div class="sec"><h5>Problem</h5><textarea class="field" id="dIssue" rows="${Math.min(10,Math.max(3,Math.ceil((it.issue||"").length/80)))}" placeholder="What's wrong…">${esc(it.issue)}</textarea></div>
-      <div class="sec"><h5>Suggested fix</h5><textarea class="field fixbox" id="dFix" rows="${Math.min(14,Math.max(3,Math.ceil((it.fix||"").length/80)+ (it.fix||"").split("\n").length-1))}" placeholder="What to do…">${esc(it.fix)}</textarea></div>
-      ${src?`<div class="sec"><h5>Raised by</h5><div class="srcs">${src}</div></div>`:""}
-      <div class="sec"><h5>Notes & conversation (${(it.notes||[]).length})</h5>
-        ${(it.notes||[]).map(n=>`<div class="note ${esc(n.who)}"><div class="h">${ownerDot(n.who)}<b>${esc(n.who)}</b> · ${ago(n.at)}</div><div class="x">${esc(n.text)}</div></div>`).join("")}
-        <textarea class="field" id="noteInput" rows="3" placeholder="Your thoughts, a decision, or a request for Claude…  (⌘↵ to post)">${esc(keepNote)}</textarea>
-        <div class="right"><button class="btn primary small" id="notePost">Post note</button></div>
+      ${it.location?`<div class="sec"><h5>${ic("pin","sm")}Location</h5><div>${esc(it.location)}</div>${(it.tex||[]).length?`<div class="muted" style="font-size:12.5px;margin-top:3px">Files: ${it.tex.map(t=>`<code>${esc(t)}</code>`).join(", ")}</div>`:""}</div>`:""}
+      ${it.anchor?`<div class="sec"><h5>${ic("quote","sm")}Quoted text</h5><p class="quote">${esc(it.anchor)}</p></div>`:""}
+      <div class="sec"><h5>${ic("alert","sm")}Problem</h5><textarea class="field" id="dIssue" rows="${Math.min(10,Math.max(3,Math.ceil((it.issue||"").length/80)))}" placeholder="What's wrong / what's needed…">${esc(it.issue)}</textarea></div>
+      <div class="sec"><h5>${ic("spark","sm")}Suggested fix</h5><textarea class="field fixbox" id="dFix" rows="${Math.min(14,Math.max(3,Math.ceil((it.fix||"").length/80)+ (it.fix||"").split("\n").length-1))}" placeholder="What to do…">${esc(it.fix)}</textarea></div>
+      ${src?`<div class="sec"><h5>${ic("link","sm")}Sources</h5><div class="srcs">${src}</div></div>`:""}
+      <div class="sec"><h5>${ic("msg","sm")}Notes & conversation (${(it.notes||[]).length})</h5>
+        ${(it.notes||[]).map(n=>`<div class="note" style="--oc:${ownerColor(n.who)}"><div class="h">${ownerDot(n.who)}<b>${esc(n.who)}</b> · ${ago(n.at)}</div><div class="x">${esc(n.text)}</div></div>`).join("")}
+        <textarea class="field" id="noteInput" rows="3" placeholder="Your thoughts, a decision, or a request for an agent…  (⌘↵ to post)">${esc(keepNote)}</textarea>
+        <div class="right"><button class="btn primary small" id="notePost">${ic("msg","sm")}Post note</button></div>
       </div>
       <div class="sec" style="margin-top:30px;display:flex;justify-content:space-between;align-items:center">
-        <span class="muted" style="font-size:12px">Updated ${ago(it.updated)}</span>
-        <button class="ghost danger" id="dDelete">Delete item</button></div>
+        <span class="muted" style="font-size:12px;display:flex;gap:5px;align-items:center">${ic("clock","sm")}Updated ${ago(it.updated)}</span>
+        <button class="ghost danger" id="dDelete">${ic("trash","sm")}Delete item</button></div>
     </div>`;
   autosize($("#dTitle"));
 }
@@ -558,11 +952,13 @@ const upd = (id,fields)=>api({op:"update",id,fields});
 
 /* ---------- events ---------- */
 document.addEventListener("click",e=>{
+  if(e.target.closest("[data-newproj]")){openNewProject();return}
+  if(view!=="project") return;
   const t=e.target.closest("[data-check],[data-id],[data-tab],[data-status],[data-cat],[data-pri],[data-owner],[data-group],[data-open],[data-tdone],[data-tdel],[data-tpromote],[data-set-status],[data-set-pri],[data-set-owner]");
   if(!t) return;
   const d=t.dataset;
-  if(d.check){e.stopPropagation();const it=S.items.find(i=>i.id===d.check);upd(it.id,{status:it.status==="done"?"todo":"done"});toast(it.status==="done"?"Reopened":"Nice — done ✓");return}
-  if(d.tab){switchTab(d.tab);return}
+  if(d.check){e.stopPropagation();const it=S.items.find(i=>i.id===d.check);upd(it.id,{status:it.status==="done"?"todo":"done"});toast(it.status==="done"?"Reopened":"Nice, done");return}
+  if(d.tab){go(`#/${encodeURIComponent(cur)}/${d.tab}`);return}
   if(d.setStatus){upd(openId,{status:d.setStatus});return}
   if(d.setPri){upd(openId,{priority:d.setPri});return}
   if(d.setOwner!==undefined){upd(openId,{owner:d.setOwner});return}
@@ -571,10 +967,10 @@ document.addEventListener("click",e=>{
   if(d.tpromote){const th=S.thoughts.find(x=>x.id===d.tpromote);promote(th);return}
   if(d.open){openDrawer(d.open);return}
   if(d.group){ui.closed[d.group]=!ui.closed[d.group];persist();renderItems();return}
-  if(t.classList.contains("count")){ui.status=d.status;ui.pri="";ui.cat="";ui.owner="";persist();switchTab("items");return}
+  if(t.classList.contains("count")){ui.status=d.status;ui.pri="";ui.cat="";ui.owner="";persist();go(`#/${encodeURIComponent(cur)}/items`);return}
   if(t.classList.contains("bar")){ui.status="";ui.pri="";ui.cat="";ui.owner="";
-    if(d.cat)ui.cat=d.cat; if(d.pri)ui.pri=d.pri; if(d.owner!==undefined)ui.owner=d.owner||"none"; persist();switchTab("items");return}
-  if(d.id && !t.classList.contains("bcard--drag")){openDrawer(d.id)}
+    if(d.cat)ui.cat=d.cat; if(d.pri)ui.pri=d.pri; if(d.owner!==undefined)ui.owner=d.owner||"none"; persist();go(`#/${encodeURIComponent(cur)}/items`);return}
+  if(d.id){openDrawer(d.id)}
 });
 async function promote(th){
   const title=th.text.split("\n")[0].slice(0,110);
@@ -582,12 +978,11 @@ async function promote(th){
   await api({op:"thought_update",id:th.id,fields:{done:true}});
   const it=S.items[S.items.length-1]; toast("Created "+it.id); openDrawer(it.id);
 }
-function switchTab(t){ui.tab=t;persist();document.querySelectorAll("#nav button").forEach(b=>b.classList.toggle("on",b.dataset.tab===t));document.querySelectorAll(".tab").forEach(s=>s.classList.toggle("on",s.id==="tab-"+t));if(S)render();window.scrollTo({top:0})}
-$("#scrim").onclick=closeDrawer;
+$("#scrim").onclick=()=>closeDrawer();
 $("#drawer").addEventListener("click",e=>{
-  if(e.target.id==="dClose") closeDrawer();
-  if(e.target.id==="notePost") postNote();
-  if(e.target.id==="dDelete" && confirm("Delete "+openId+"? This can't be undone.")){api({op:"delete",id:openId});closeDrawer()}
+  if(e.target.closest("#dClose")) closeDrawer();
+  if(e.target.closest("#notePost")) postNote();
+  if(e.target.closest("#dDelete") && confirm("Delete "+openId+"? This can't be undone.")){api({op:"delete",id:openId});closeDrawer()}
 });
 $("#drawer").addEventListener("input",e=>{
   if(e.target.id==="dProg") $("#dProgV").textContent=e.target.value+"%";
@@ -607,8 +1002,8 @@ $("#drawer").addEventListener("keydown",e=>{
   if(e.target.id==="dTitle" && e.key==="Enter"){e.preventDefault();e.target.blur()}
   if(e.target.id==="noteInput" && e.key==="Enter" && (e.metaKey||e.ctrlKey)) postNote();
 });
-function postNote(){const t=$("#noteInput");if(!t.value.trim())return;const v=t.value;t.value="";api({op:"note",id:openId,text:v}).then(()=>toast("Note posted"))}
-function saveThought(sel){const t=$(sel);if(!t.value.trim())return;api({op:"thought",text:t.value});t.value="";toast("Saved. You can let go of it now.")}
+function postNote(){const t=$("#noteInput");if(!t.value.trim())return;const v=t.value;t.value="";api({op:"note",id:openId,text:v}).then(()=>toast("Note posted","msg"))}
+function saveThought(sel){const t=$(sel);if(!t.value.trim())return;api({op:"thought",text:t.value});t.value="";toast("Saved. You can let go of it now.","bulb")}
 $("#quickSave").onclick=()=>saveThought("#quickThought");
 $("#thoughtSave").onclick=()=>saveThought("#thoughtInput");
 ["#quickThought","#thoughtInput"].forEach(s=>$(s).addEventListener("keydown",e=>{if(e.key==="Enter"&&(e.metaKey||e.ctrlKey))saveThought(s)}));
@@ -619,13 +1014,18 @@ $("#fStatus").onchange=e=>{ui.status=e.target.value;persist();renderItems()};
 $("#fOwner").onchange=e=>{ui.owner=e.target.value;persist();renderItems()};
 $("#fCat").onchange=e=>{ui.cat=e.target.value;persist();renderItems()};
 $("#addItem").onclick=async()=>{const t=prompt("Title of the new item:");if(!t)return;await api({op:"add",fields:Object.assign({title:t,priority:ui.pri||"P2"},ui.cat?{category:ui.cat}:{})});openDrawer(S.items[S.items.length-1].id)};
-$("#themeBtn").onclick=()=>{const r=document.documentElement;const dark=r.dataset.theme?r.dataset.theme==="dark":matchMedia("(prefers-color-scheme: dark)").matches;r.dataset.theme=dark?"light":"dark";try{localStorage.setItem("bb.theme",r.dataset.theme)}catch(e){}};
+function isDark(){const r=document.documentElement;return r.dataset.theme?r.dataset.theme==="dark":matchMedia("(prefers-color-scheme: dark)").matches}
+function syncThemeIcon(){$("#themeIc").setAttribute("href",isDark()?"#i-sun":"#i-moon")}
+$("#themeBtn").onclick=()=>{const r=document.documentElement;r.dataset.theme=isDark()?"light":"dark";try{localStorage.setItem("bb.theme",r.dataset.theme)}catch(e){};syncThemeIcon()};
 try{const th=localStorage.getItem("bb.theme");if(th)document.documentElement.dataset.theme=th}catch(e){}
+syncThemeIcon();
 document.addEventListener("keydown",e=>{
-  if(e.key==="Escape"&&openId){closeDrawer();return}
-  if(/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) return;
-  if(e.key==="/"){e.preventDefault();switchTab("items");$("#q").focus()}
-  if(e.key==="t"){e.preventDefault();switchTab("focus");$("#quickThought").focus()}
+  if(e.key==="Escape"){ if(openId){closeDrawer();return} closeMenu(); }
+  if(/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName) || e.metaKey || e.ctrlKey || $("#newDlg").open) return;
+  if(e.key==="g"){go("#/");return}
+  if(view!=="project") return;
+  if(e.key==="/"){e.preventDefault();go(`#/${encodeURIComponent(cur)}/items`);setTimeout(()=>$("#q").focus(),60)}
+  if(e.key==="t"){e.preventDefault();go(`#/${encodeURIComponent(cur)}/focus`);setTimeout(()=>$("#quickThought").focus(),60)}
 });
 /* drag & drop on board */
 $("#board").addEventListener("dragstart",e=>{const c=e.target.closest(".bcard");if(c)e.dataTransfer.setData("text/plain",c.dataset.id)});
@@ -633,11 +1033,10 @@ $("#board").addEventListener("dragover",e=>{const c=e.target.closest(".col");if(
 $("#board").addEventListener("dragleave",e=>{if(!e.relatedTarget||!$("#board").contains(e.relatedTarget))document.querySelectorAll(".col").forEach(x=>x.classList.remove("over"))});
 $("#board").addEventListener("drop",e=>{e.preventDefault();document.querySelectorAll(".col").forEach(x=>x.classList.remove("over"));const c=e.target.closest(".col");const id=e.dataTransfer.getData("text/plain");if(c&&id){const it=S.items.find(i=>i.id===id);if(it.status!==c.dataset.col)upd(id,{status:c.dataset.col})}});
 
-const h0=location.hash.slice(1);
-switchTab(["focus","items","board","thoughts","activity","help"].includes(h0)?h0:(ui.tab||"focus"));
-refresh().then(()=>{ if(/^[A-Z]\d+$/.test(h0) && S.items.some(i=>i.id===h0)) openDrawer(h0) });
+window.addEventListener("hashchange",route);
+route();
 setInterval(poll,2000);
-setInterval(()=>{if(S&&!openId)$("#sub").textContent=`${S.items.filter(i=>i.status==="done").length} of ${S.items.length} done · updated ${ago(S.meta.updated)} by ${S.meta.updated_by||"?"}`},30000);
+setInterval(()=>{ if(view==="project"&&S&&!openId){const el=$("#pSub");if(el)el.innerHTML=heroSub()} else if(view==="home") renderHome(); },30000);
 </script>
 </body>
 </html>

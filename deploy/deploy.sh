@@ -2,7 +2,7 @@
 # Usage: deploy/deploy.sh user@host   — sync code to ~/apps/brainboard and restart the user service.
 # First run on the host: create ~/.config/brainboard/server.env (chmod 600) with
 #   BRAINBOARD_PASSWORD=…  BRAINBOARD_HOST=0.0.0.0  BRAINBOARD_PORT=2001
-#   BRAINBOARD_DATA=/home/<user>/.local/share/brainboard/board.json
+#   BRAINBOARD_HOME=/home/<user>/.local/share/brainboard   (older installs: BRAINBOARD_DATA=…/board.json still works)
 set -euo pipefail
 HOST=${1:?usage: deploy.sh user@host}
 cd "$(dirname "$0")/.."

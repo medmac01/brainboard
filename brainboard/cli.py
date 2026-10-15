@@ -1,30 +1,38 @@
 #!/usr/bin/env python3
 """Command-line access to brainboard, for agents (and humans).
 
-Works on a local board file, or on a remote server when a URL is configured:
-  BRAINBOARD_URL=http://host:2001 BRAINBOARD_PASSWORD=… python3 brainboard/cli.py summary
-or put {"url": …, "password": …, "who": …} in ~/.config/brainboard/config.json (chmod 600).
+Works on a local data directory, or on a remote server when a URL is configured:
+  BRAINBOARD_URL=http://host:2001 BRAINBOARD_PASSWORD=… python3 brainboard/cli.py projects
+or run `cli.py config --url http://host:2001` once (writes ~/.config/brainboard/config.json, chmod 600).
+
+Which project? First match wins: -p/--project, $BRAINBOARD_PROJECT, a `.brainboard` file in this
+directory or a parent (one line: the slug), the config default (`cli.py use SLUG`), or the only
+active project.
 
 Examples
-  python3 brainboard/cli.py summary
+  python3 brainboard/cli.py projects
+  python3 brainboard/cli.py -p thesis summary
+  python3 brainboard/cli.py inbox                    # notes and thoughts waiting for *you* (per item)
   python3 brainboard/cli.py next                     # what to work on
   python3 brainboard/cli.py list --status todo,doing --priority P1
   python3 brainboard/cli.py show E03
   python3 brainboard/cli.py set E03 status=doing progress=30 owner=claude
   python3 brainboard/cli.py note E03 "Code uses /13 because ..."
-  python3 brainboard/cli.py add "Fix Fig. 9 legend" --cat "Figures, tables & refs" --priority P3
-  python3 brainboard/cli.py thought "Ask prof whether to keep APTMorph"
-  python3 brainboard/cli.py thoughts
+  python3 brainboard/cli.py add "Fix Fig. 9 legend" --cat Writing --priority P3
+  python3 brainboard/cli.py thought "Ask whether to keep the baseline"
+  python3 brainboard/cli.py project-add "Thesis" --icon 🎓 --cats "Chapters,Experiments,Admin"
 
-Author defaults to "claude"; override with --who or TRACKER_WHO.
+Author defaults to "claude"; override with --who or BRAINBOARD_WHO.
 """
 import argparse
 import base64
+import getpass
 import json
 import os
 import sys
 import textwrap
 import urllib.error
+import urllib.parse
 import urllib.request
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -33,19 +41,28 @@ import core  # noqa: E402
 CONFIG = os.path.expanduser("~/.config/brainboard/config.json")
 
 
-def _config():
-    cfg = {}
+def _read_config():
     if os.path.exists(CONFIG):
         with open(CONFIG) as fh:
-            cfg = json.load(fh)
-    url = os.environ.get("BRAINBOARD_URL", cfg.get("url", ""))
-    pw = os.environ.get("BRAINBOARD_PASSWORD", cfg.get("password", ""))
-    who = os.environ.get("TRACKER_WHO") or os.environ.get("BRAINBOARD_WHO") or cfg.get("who", "claude")
-    return url.rstrip("/"), pw, who
+            return json.load(fh)
+    return {}
 
 
-URL, PASSWORD, WHO = _config()
+CFG = _read_config()
+URL = os.environ.get("BRAINBOARD_URL", CFG.get("url", "")).rstrip("/")
+PASSWORD = os.environ.get("BRAINBOARD_PASSWORD", CFG.get("password", ""))
+WHO = os.environ.get("BRAINBOARD_WHO") or os.environ.get("TRACKER_WHO") or CFG.get("who", "claude")
 
+
+def _write_config(cfg):
+    os.makedirs(os.path.dirname(CONFIG), exist_ok=True)
+    fd = os.open(CONFIG, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w") as fh:
+        json.dump(cfg, fh, indent=1)
+        fh.write("\n")
+
+
+# ---------- backend: remote server or local files ----------
 
 def _http(path, body=None):
     req = urllib.request.Request(URL + path, data=None if body is None else json.dumps(body).encode(),
@@ -57,19 +74,80 @@ def _http(path, body=None):
             return json.load(r)
     except urllib.error.HTTPError as e:
         raise ValueError(f"server said {e.code}: {e.read().decode()[:200]}")
+    except urllib.error.URLError as e:
+        raise ValueError(f"can't reach {URL}: {e.reason}")
 
 
-def load():
+def list_projects():
     if URL:
-        return _http("/api/state")
-    core.ensure_board()
-    return core.load()
+        return _http("/api/projects")["projects"]
+    core.ensure_home()
+    return core.list_projects()
 
 
-def apply_op(op, who):
+def load(slug):
     if URL:
-        return _http("/api/op", dict(op, who=who))
-    return core.apply_op(op, who)
+        return _http(f"/api/p/{urllib.parse.quote(slug)}/state")
+    return core.load(slug)
+
+
+def apply_op(slug, op, who):
+    if URL:
+        return _http(f"/api/p/{urllib.parse.quote(slug)}/op", dict(op, who=who))
+    return core.apply_op(slug, op, who)
+
+
+def create_project(fields, who):
+    if URL:
+        return _http("/api/projects", {"op": "create", "fields": fields, "who": who})["slug"]
+    core.ensure_home()
+    return core.create_project(fields, who)
+
+
+# ---------- project resolution ----------
+
+def _pin_file():
+    d = os.getcwd()
+    while True:
+        f = os.path.join(d, ".brainboard")
+        if os.path.isfile(f):
+            with open(f) as fh:
+                words = fh.read().split()
+            return words[0] if words else ""
+        parent = os.path.dirname(d)
+        if parent == d:
+            return ""
+        d = parent
+
+
+def _match(spec, projects):
+    s = spec.lower()
+    for test in (lambda p: p["slug"] == s, lambda p: p["title"].lower() == s):
+        hit = [p for p in projects if test(p)]
+        if hit:
+            return hit[0]["slug"]
+    hit = [p for p in projects if p["slug"].startswith(s)]
+    if len(hit) == 1:
+        return hit[0]["slug"]
+    known = ", ".join(p["slug"] for p in projects) or "none yet; create one with project-add"
+    raise ValueError(f"no single project matches {spec!r} (projects: {known})")
+
+
+def resolve(a):
+    projects = list_projects()
+    spec = a.project or os.environ.get("BRAINBOARD_PROJECT") or _pin_file() or CFG.get("project", "")
+    if spec:
+        return _match(spec, projects)
+    live = [p for p in projects if not p.get("archived")]
+    if len(live) == 1:
+        return live[0]["slug"]
+    if not live:
+        raise ValueError("no projects yet; create one: cli.py project-add \"Title\"")
+    raise ValueError("several projects; pick one with -p SLUG or `cli.py use SLUG`: "
+                     + ", ".join(p["slug"] for p in live))
+
+
+# ---------- output helpers ----------
 
 PRI_ORDER = {"P1": 0, "P2": 1, "P3": 2}
 STATUS_ORDER = {"decide": 0, "doing": 1, "blocked": 2, "todo": 3, "done": 4, "skip": 5}
@@ -79,6 +157,75 @@ def line(it):
     own = f" @{it['owner']}" if it.get("owner") else ""
     return f"{it['id']:<4} {it['priority']} {it['status']:<7} {it.get('progress', 0):>3}%  {it['title']}{own}"
 
+
+def wrap(text, indent="    "):
+    return "\n".join(textwrap.indent(textwrap.fill(p, 96), indent) if p.strip() else ""
+                     for p in text.split("\n"))
+
+
+# ---------- project commands ----------
+
+def cmd_projects(a):
+    projects = list_projects()
+    if a.json:
+        return print(json.dumps(projects, indent=1, ensure_ascii=False))
+    try:
+        cur = resolve(a)
+    except ValueError:
+        cur = ""
+    if not projects:
+        return print("no projects yet; create one: cli.py project-add \"Title\"")
+    for p in projects:
+        s = p["stats"]
+        opn = s["total"] - s["counts"]["done"] - s["counts"]["skip"]
+        flags = " (archived)" if p.get("archived") else ""
+        dec = f"  {len(p['decide'])} to decide" if p.get("decide") else ""
+        print(f"{'*' if p['slug'] == cur else ' '} {p['slug']:<28} {s['percent']:>5.1f}%  {opn:>3} open{dec}  "
+              f"{p.get('icon') or ''} {p['title']}{flags}")
+
+
+def cmd_project_add(a):
+    f = {"title": a.title}
+    for k, v in (("slug", a.slug), ("description", a.desc), ("icon", a.icon), ("color", a.color),
+                 ("categories", a.cats), ("people", a.people)):
+        if v:
+            f[k] = v
+    print("created", create_project(f, a.who))
+
+
+def cmd_project_set(a):
+    slug = resolve(a)
+    fields = dict(kv.partition("=")[::2] for kv in a.pairs)
+    m = apply_op(slug, {"op": "meta", "fields": fields}, a.who)["meta"]
+    print(f"{slug}: " + ", ".join(f"{k}={m.get(k)}" for k in fields))
+
+
+def cmd_use(a):
+    _match(a.slug, list_projects())
+    cfg = _read_config()
+    cfg["project"] = a.slug
+    _write_config(cfg)
+    print(f"default project → {a.slug}  (in {CONFIG})")
+
+
+def cmd_config(a):
+    cfg = _read_config()
+    if a.url is not None:
+        cfg["url"] = a.url.rstrip("/")
+        pw = getpass.getpass("Board password (empty for none): ") if sys.stdin.isatty() else sys.stdin.readline().strip()
+        if pw:
+            cfg["password"] = pw
+        else:
+            cfg.pop("password", None)
+    if a.set_who:
+        cfg["who"] = a.set_who
+    if a.url is not None or a.set_who:
+        _write_config(cfg)
+    shown = {k: ("••••" if k == "password" else v) for k, v in cfg.items()}
+    print(f"{CONFIG}: {json.dumps(shown)}")
+
+
+# ---------- item commands (inside one project) ----------
 
 def cmd_list(a, data):
     items = data["items"]
@@ -101,14 +248,14 @@ def cmd_show(a, data):
     if a.json:
         return print(json.dumps(it, indent=1, ensure_ascii=False))
     print(line(it))
-    for k in ("category", "kind", "location", "sources", "tex"):
+    for k in ("category", "kind", "location", "sources", "tex", "tags"):
         if it.get(k):
             print(f"  {k:<9} {', '.join(it[k]) if isinstance(it[k], list) else it[k]}")
     for k in ("anchor", "issue", "fix"):
         if it.get(k):
-            print(f"\n  {k.upper()}\n" + textwrap.indent(textwrap.fill(it[k], 96), "    "))
+            print(f"\n  {k.upper()}\n" + wrap(it[k]))
     for n in it.get("notes", []):
-        print(f"\n  [{n['at'][:16]} {n['who']}]\n" + textwrap.indent(textwrap.fill(n["text"], 96), "    "))
+        print(f"\n  [{n['at'][:16]} {n['who']}]\n" + wrap(n["text"]))
 
 
 def cmd_set(a, data):
@@ -121,11 +268,11 @@ def cmd_set(a, data):
             fields[k] = v.lower() in ("1", "true", "yes")
         else:
             fields[k] = v
-    print(line(core._find(apply_op({"op": "update", "id": a.id, "fields": fields}, a.who)["items"], a.id)))
+    print(line(core._find(apply_op(a.slug, {"op": "update", "id": a.id, "fields": fields}, a.who)["items"], a.id)))
 
 
 def cmd_note(a, data):
-    apply_op({"op": "note", "id": a.id, "text": a.text}, a.who)
+    apply_op(a.slug, {"op": "note", "id": a.id, "text": a.text}, a.who)
     print(f"noted on {a.id}")
 
 
@@ -136,24 +283,53 @@ def cmd_add(a, data):
     for k in ("issue", "fix", "location", "owner"):
         if getattr(a, k):
             f[k] = getattr(a, k)
-    new = apply_op({"op": "add", "fields": f}, a.who)
+    new = apply_op(a.slug, {"op": "add", "fields": f}, a.who)
     print(line(new["items"][-1]))
 
 
 def cmd_thought(a, data):
-    apply_op({"op": "thought", "text": a.text}, a.who)
+    apply_op(a.slug, {"op": "thought", "text": a.text}, a.who)
     print("thought added")
 
 
 def cmd_thoughts(a, data):
     for t in data.get("thoughts", []):
+        if t.get("done") and not a.all:
+            continue
         mark = "x" if t.get("done") else " "
         print(f"[{mark}] {t['id']} {t['at'][:16]} {t['who']}: {t['text']}")
 
 
+def cmd_inbox(a, data):
+    """Per item: notes by others posted after my own last note on that item. Plus open thoughts not by me."""
+    me, found = a.who, False
+    for it in data["items"]:
+        notes = it.get("notes", [])
+        mine = [k for k, n in enumerate(notes) if n["who"] == me]
+        start = mine[-1] + 1 if mine else 0
+        waiting = [n for n in notes[start:] if n["who"] != me]
+        if not waiting:
+            continue
+        found = True
+        print(line(it))
+        for n in waiting:
+            print(f"  [{n['at'][:16]} {n['who']}]\n" + wrap(n["text"]))
+        print()
+    th = [t for t in data.get("thoughts", []) if not t.get("done") and t["who"] != me]
+    if th:
+        found = True
+        print("Open thoughts:")
+        for t in th:
+            print(f"  {t['id']} {t['at'][:16]} {t['who']}: {t['text']}")
+    if not found:
+        print(f"nothing waiting for {me}")
+
+
 def cmd_summary(a, data):
     s = core.stats(data)
-    print(f"Overall {s['percent']}% (priority-weighted)  ·  {s['total']} items")
+    m = data["meta"]
+    print(f"{m.get('icon', '')} {m['title']}  [{a.slug}]")
+    print(f"Overall {s['percent']}% (priority-weighted)  ·  {s['total']} items  ·  {s['open_thoughts']} open thoughts")
     print("  " + "  ".join(f"{k}:{v}" for k, v in s["counts"].items()))
     cats = {}
     for it in data["items"]:
@@ -171,10 +347,29 @@ def cmd_next(a, data):
         print(line(it))
 
 
+GLOBAL_CMDS = {"projects", "project_add", "use", "config"}
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--who", default=WHO)
+    ap.add_argument("--who", default=WHO, help="sign changes as (default: %(default)s)")
+    ap.add_argument("-p", "--project", help="project slug or title")
     sub = ap.add_subparsers(dest="cmd", required=True)
+    p = sub.add_parser("projects", help="list projects (* = the one commands use)")
+    p.add_argument("--json", action="store_true")
+    p = sub.add_parser("project-add", help="create a project")
+    p.add_argument("title"); p.add_argument("--slug"); p.add_argument("--desc"); p.add_argument("--icon")
+    p.add_argument("--color", help="#rrggbb"); p.add_argument("--cats", help="comma-separated categories")
+    p.add_argument("--people", help="comma-separated people/agents")
+    p = sub.add_parser("project-set", help="edit project fields: title description icon color categories people archived")
+    p.add_argument("pairs", nargs="+", metavar="field=value")
+    p = sub.add_parser("use", help="set the default project in your config")
+    p.add_argument("slug")
+    p = sub.add_parser("config", help="show or set url/password/who in your config")
+    p.add_argument("--url"); p.add_argument("--who", dest="set_who")
+    p = sub.add_parser("summary")
+    p = sub.add_parser("inbox", help="notes and thoughts waiting for you")
+    p = sub.add_parser("next"); p.add_argument("-n", type=int, default=8)
     p = sub.add_parser("list"); p.add_argument("--status"); p.add_argument("--priority")
     p.add_argument("--owner"); p.add_argument("--cat"); p.add_argument("--json", action="store_true")
     p = sub.add_parser("show"); p.add_argument("id"); p.add_argument("--json", action="store_true")
@@ -184,14 +379,16 @@ def main():
     p.add_argument("--priority", default="P2"); p.add_argument("--issue"); p.add_argument("--fix")
     p.add_argument("--location"); p.add_argument("--owner")
     p = sub.add_parser("thought"); p.add_argument("text")
-    sub.add_parser("thoughts")
-    sub.add_parser("summary")
-    p = sub.add_parser("next"); p.add_argument("-n", type=int, default=8)
+    p = sub.add_parser("thoughts"); p.add_argument("--all", action="store_true", help="include handled ones")
     a = ap.parse_args()
+    name = a.cmd.replace("-", "_")
     try:
-        globals()["cmd_" + a.cmd](a, load())
+        if name in GLOBAL_CMDS or name == "project_set":
+            return globals()["cmd_" + name](a)
+        a.slug = resolve(a)
+        globals()["cmd_" + name](a, load(a.slug))
     except (KeyError, ValueError, OSError) as e:
-        sys.exit(f"error: {e}")
+        sys.exit(f"error: {str(e).strip(chr(39))}")
 
 
 if __name__ == "__main__":

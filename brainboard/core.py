@@ -1,23 +1,36 @@
 """Shared storage + operations for brainboard.
 
-The board file (BRAINBOARD_DATA, default ./data/board.json) is the single source of truth. Every writer (web server, CLI,
-any agent) goes through apply_op(), which takes a file lock, re-reads the
-file, applies one operation, bumps `rev`, logs activity and writes atomically.
-Agents may also edit data.json by hand; the web page picks up any change.
+Boards live under BRAINBOARD_HOME (default ./data), one JSON file per project:
+projects/<slug>.json. Each project file is a complete board (meta, items,
+thoughts, activity). Every writer (web server, CLI, any agent) goes through
+apply_op(), which takes that project's file lock, re-reads the file, applies
+one operation, bumps `rev`, logs activity and writes atomically.
+
+Older single-board installs (BRAINBOARD_DATA=…/board.json) are migrated on
+first start: the board becomes the first project and the old file is renamed
+to board.json.migrated.
 """
 import fcntl
+import hashlib
 import json
 import os
+import re
 import tempfile
 from contextlib import contextmanager
 from datetime import datetime, timezone
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-DATA = os.path.abspath(os.environ.get("BRAINBOARD_DATA", os.path.join(HERE, "..", "data", "board.json")))
-DATA_DIR = os.path.dirname(DATA)
-LOCK = os.path.join(DATA_DIR, ".data.lock")
+_LEGACY_ENV = os.path.expanduser(os.environ.get("BRAINBOARD_DATA", ""))
+HOME = os.path.abspath(os.path.expanduser(
+    os.environ.get("BRAINBOARD_HOME")
+    or (os.path.dirname(_LEGACY_ENV) if _LEGACY_ENV else os.path.join(HERE, "..", "data"))))
+PROJECTS = os.path.join(HOME, "projects")
+TRASH = os.path.join(HOME, "trash")
+LEGACY = os.path.abspath(_LEGACY_ENV) if _LEGACY_ENV else os.path.join(HOME, "board.json")
 
-DEFAULT_CATEGORIES = ["Inbox", "Writing", "Experiments", "Figures", "Admin"]
+DEFAULT_CATEGORIES = ["Inbox", "Build", "Research", "Writing", "Admin"]
+DEFAULT_PEOPLE = ["me", "claude", "codex"]
+COLORS = ["#5b5bd6", "#2f6fde", "#0e8f87", "#2f8a57", "#b7791f", "#d0602b", "#d1456a", "#8b4fd6"]
 
 STATUSES = ["todo", "doing", "decide", "blocked", "done", "skip"]
 PRIORITIES = ["P1", "P2", "P3"]
@@ -25,6 +38,8 @@ ITEM_FIELDS = {
     "title", "category", "priority", "kind", "status", "progress", "owner",
     "location", "anchor", "issue", "fix", "sources", "tex", "tags", "pinned",
 }
+META_FIELDS = {"title", "description", "icon", "color", "categories", "people", "archived"}
+SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,47}$")
 ACTIVITY_CAP = 500
 
 
@@ -32,23 +47,57 @@ def now():
     return datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds")
 
 
-def empty_board(title="My board"):
-    return {
-        "meta": {"title": title, "rev": 0, "updated": now(), "updated_by": "brainboard",
-                 "sources": {}, "categories": DEFAULT_CATEGORIES, "people": ["me", "claude", "agent"]},
-        "items": [], "thoughts": [], "activity": [],
-    }
+def slugify(text):
+    return re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")[:40].strip("-") or "project"
 
 
-def ensure_board():
-    os.makedirs(DATA_DIR, exist_ok=True)
-    if not os.path.exists(DATA):
-        save(empty_board(os.environ.get("BRAINBOARD_TITLE", "My board")))
+def path(slug):
+    if not SLUG_RE.match(slug or ""):
+        raise ValueError(f"bad project slug: {slug!r}")
+    return os.path.join(PROJECTS, slug + ".json")
+
+
+def exists(slug):
+    return os.path.exists(path(slug))
+
+
+def slugs():
+    if not os.path.isdir(PROJECTS):
+        return []
+    return sorted(f[:-5] for f in os.listdir(PROJECTS) if f.endswith(".json") and SLUG_RE.match(f[:-5]))
+
+
+def empty_board(title="My project", **meta):
+    m = {"title": title, "description": "", "icon": "📌", "color": COLORS[0], "rev": 0,
+         "created": now(), "updated": now(), "updated_by": "brainboard", "archived": False,
+         "sources": {}, "categories": list(DEFAULT_CATEGORIES), "people": list(DEFAULT_PEOPLE)}
+    m.update(meta)
+    return {"meta": m, "items": [], "thoughts": [], "activity": []}
+
+
+def ensure_home():
+    os.makedirs(PROJECTS, exist_ok=True)
+    if os.path.isfile(LEGACY) and not slugs():
+        _migrate_legacy()
+
+
+def _migrate_legacy():
+    with open(LEGACY, encoding="utf-8") as fh:
+        data = json.load(fh)
+    meta = data.setdefault("meta", {})
+    defaults = empty_board(meta.get("title") or "My board")["meta"]
+    for k, v in defaults.items():
+        meta.setdefault(k, v)
+    slug = slugify(meta["title"])
+    _log(data, "brainboard", "board migrated into project “%s”" % meta["title"])
+    save(slug, data)
+    os.replace(LEGACY, LEGACY + ".migrated")
 
 
 @contextmanager
-def locked():
-    with open(LOCK, "w") as fh:
+def locked(slug=None):
+    os.makedirs(PROJECTS, exist_ok=True)
+    with open(os.path.join(PROJECTS, f".{slug or '_index'}.lock"), "w") as fh:
         fcntl.flock(fh, fcntl.LOCK_EX)
         try:
             yield
@@ -56,17 +105,25 @@ def locked():
             fcntl.flock(fh, fcntl.LOCK_UN)
 
 
-def load():
-    with open(DATA, encoding="utf-8") as fh:
-        return json.load(fh)
+def load(slug):
+    p = path(slug)
+    if not os.path.exists(p):
+        raise KeyError(f"no such project: {slug}")
+    with open(p, encoding="utf-8") as fh:
+        data = json.load(fh)
+    data["meta"]["slug"] = slug
+    return data
 
 
-def save(data):
-    fd, tmp = tempfile.mkstemp(dir=DATA_DIR, prefix=".data.", suffix=".tmp")
+def save(slug, data):
+    os.makedirs(PROJECTS, exist_ok=True)
+    data["meta"].pop("slug", None)
+    fd, tmp = tempfile.mkstemp(dir=PROJECTS, prefix=".tmp.", suffix=".json")
     with os.fdopen(fd, "w", encoding="utf-8") as fh:
         json.dump(data, fh, indent=1, ensure_ascii=False)
         fh.write("\n")
-    os.replace(tmp, DATA)
+    os.replace(tmp, path(slug))
+    data["meta"]["slug"] = slug
 
 
 def _find(seq, id_):
@@ -102,23 +159,52 @@ def _clean_fields(fields):
     return fields
 
 
+def _as_list(v):
+    if isinstance(v, str):
+        v = re.split(r"[,\n]", v)
+    return [str(x).strip() for x in v if str(x).strip()]
+
+
+def _clean_meta(fields):
+    bad = set(fields) - META_FIELDS
+    if bad:
+        raise ValueError(f"unknown project field(s): {', '.join(sorted(bad))}")
+    f = dict(fields)
+    if "title" in f:
+        f["title"] = str(f["title"]).strip()[:120]
+        if not f["title"]:
+            raise ValueError("title can't be empty")
+    if "description" in f:
+        f["description"] = str(f["description"]).strip()[:500]
+    if "icon" in f:
+        f["icon"] = str(f["icon"]).strip()[:8] or "📌"
+    if "color" in f and not re.match(r"^#[0-9a-fA-F]{6}$", str(f["color"])):
+        raise ValueError("color must look like #5b5bd6")
+    for k in ("categories", "people"):
+        if k in f:
+            f[k] = _as_list(f[k])
+            if not f[k]:
+                raise ValueError(f"{k} can't be empty")
+    if "archived" in f:
+        f["archived"] = f["archived"] in (True, 1, "1", "true", "yes")
+    return f
+
+
 def _describe(fields):
     parts = []
     for k, v in fields.items():
-        if k in ("issue", "fix", "anchor"):
-            parts.append(f"edited {k}")
-        elif isinstance(v, str) and len(v) > 40:
+        if k in ("issue", "fix", "anchor", "description") or isinstance(v, list) or (isinstance(v, str) and len(v) > 40):
             parts.append(f"edited {k}")
         else:
             parts.append(f"{k} → {v}")
     return ", ".join(parts)
 
 
-def apply_op(op, who="me"):
-    """Apply one operation dict. Returns the new full state."""
+def apply_op(slug, op, who="me"):
+    """Apply one operation dict to a project. Returns the project's new full state."""
     kind = op.get("op")
-    with locked():
-        data = load()
+    with locked(slug):
+        data = load(slug)
         items, thoughts = data["items"], data.setdefault("thoughts", [])
         if kind == "update":
             it = _find(items, op["id"])
@@ -138,8 +224,8 @@ def apply_op(op, who="me"):
         elif kind == "add":
             fields = _clean_fields(dict(op["fields"]))
             it = {
-                "id": _next_id(items, "N"), "title": "", "category": (data["meta"].get("categories") or ["Inbox"])[0], "priority": "P2",
-                "kind": "", "status": "todo", "progress": 0, "owner": "", "location": "",
+                "id": _next_id(items, "N"), "title": "", "category": (data["meta"].get("categories") or ["Inbox"])[0],
+                "priority": "P2", "kind": "", "status": "todo", "progress": 0, "owner": "", "location": "",
                 "anchor": "", "issue": "", "fix": "", "sources": [], "tex": [], "tags": [],
                 "notes": [], "created": now(), "updated": now(),
             }
@@ -170,13 +256,49 @@ def apply_op(op, who="me"):
             th.update({k: v for k, v in op["fields"].items() if k in ("text", "done")})
         elif kind == "thought_delete":
             thoughts.remove(_find(thoughts, op["id"]))
+        elif kind == "meta":
+            fields = _clean_meta(op["fields"])
+            changed = {k: v for k, v in fields.items() if data["meta"].get(k) != v}
+            if not changed:
+                return data
+            data["meta"].update(changed)
+            _log(data, who, "project: " + _describe(changed))
         else:
             raise ValueError(f"unknown op: {kind}")
         data["meta"]["rev"] = data["meta"].get("rev", 0) + 1
         data["meta"]["updated"] = now()
         data["meta"]["updated_by"] = who
-        save(data)
+        save(slug, data)
         return data
+
+
+def create_project(fields, who="me"):
+    """Create a project from meta fields (+ optional "slug"). Returns its slug."""
+    fields = dict(fields)
+    want = slugify(str(fields.pop("slug", "") or fields.get("title", "")))
+    meta = _clean_meta(fields)
+    if "title" not in meta:
+        raise ValueError("a project needs a title")
+    with locked(None):
+        slug, n = want, 2
+        while exists(slug):
+            slug, n = f"{want[:44]}-{n}", n + 1
+        meta.setdefault("color", COLORS[len(slugs()) % len(COLORS)])
+        data = empty_board(**meta)
+        data["meta"]["updated_by"] = who
+        _log(data, who, f"created project “{meta['title']}”")
+        save(slug, data)
+    return slug
+
+
+def delete_project(slug):
+    """Move a project file to trash/ (recoverable by moving it back)."""
+    with locked(slug):
+        p = path(slug)
+        if not os.path.exists(p):
+            raise KeyError(f"no such project: {slug}")
+        os.makedirs(TRASH, exist_ok=True)
+        os.replace(p, os.path.join(TRASH, f"{slug}.{datetime.now():%Y%m%d-%H%M%S}.json"))
 
 
 def stats(data):
@@ -185,14 +307,49 @@ def stats(data):
     tot = sum(w[i["priority"]] for i in live) or 1
     pct = sum(w[i["priority"]] * (100 if i["status"] == "done" else i.get("progress", 0)) for i in live) / tot
     by = {s: sum(1 for i in data["items"] if i["status"] == s) for s in STATUSES}
-    return {"percent": round(pct, 1), "counts": by, "total": len(data["items"])}
+    return {"percent": round(pct, 1), "counts": by, "total": len(data["items"]),
+            "open_thoughts": sum(1 for t in data.get("thoughts", []) if not t.get("done"))}
 
 
+def summary(slug):
+    data = load(slug)
+    m = data["meta"]
+    keep = ("slug", "title", "description", "icon", "color", "archived", "created", "updated", "updated_by", "rev")
+    s = {k: m.get(k) for k in keep}
+    s["stats"] = stats(data)
+    s["decide"] = [{"id": i["id"], "title": i["title"], "priority": i["priority"]}
+                   for i in data["items"] if i["status"] == "decide"]
+    return s
 
-def version():
-    """Cheap change token: rev plus mtime, so hand edits to data.json also count."""
+
+def list_projects():
+    """Project summaries: active first, most recently updated first."""
+    out = []
+    for slug in slugs():
+        try:
+            out.append(summary(slug))
+        except (OSError, ValueError, KeyError):
+            continue
+    out.sort(key=lambda p: p["updated"] or "", reverse=True)
+    out.sort(key=lambda p: bool(p["archived"]))
+    return out
+
+
+def version(slug):
+    """Cheap change token: rev plus mtime, so hand edits to the file also count."""
     try:
-        rev = load()["meta"].get("rev", 0)
+        rev = load(slug)["meta"].get("rev", 0)
+        return f"{rev}:{os.path.getmtime(path(slug)):.3f}"
     except (json.JSONDecodeError, OSError, KeyError):
-        rev = -1
-    return f"{rev}:{os.path.getmtime(DATA):.3f}"
+        return "gone"
+
+
+def index_version():
+    """Change token for the whole home (any project created, deleted or edited)."""
+    h = hashlib.sha1()
+    for slug in slugs():
+        try:
+            h.update(f"{slug}:{os.path.getmtime(path(slug)):.3f};".encode())
+        except OSError:
+            pass
+    return h.hexdigest()[:16]

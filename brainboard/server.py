@@ -5,15 +5,24 @@
     BRAINBOARD_PASSWORD=… python3 brainboard/server.py --host 0.0.0.0 --port 2001
 
 Environment
-  BRAINBOARD_DATA      board file (default ./data/board.json; created if missing)
+  BRAINBOARD_HOME      data directory (default ./data); one file per project in projects/<slug>.json
+  BRAINBOARD_DATA      legacy single-board file; its directory becomes the home and the board is
+                       migrated into the first project
   BRAINBOARD_PASSWORD  enables HTTP Basic auth (any username). Required off localhost.
-  BRAINBOARD_TITLE     title for a newly created board
+
+API
+  GET  /api/projects                 project summaries + index version
+  POST /api/projects                 {"op":"create","fields":{…}} | {"op":"delete","slug":…}
+  GET  /api/version                  index version (changes when any project changes)
+  GET  /api/p/<slug>/state|version   one project
+  POST /api/p/<slug>/op              one operation (see core.apply_op)
 """
 import argparse
 import base64
 import hmac
 import json
 import os
+import re
 import sys
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -24,6 +33,7 @@ import core  # noqa: E402
 INDEX = os.path.join(core.HERE, "index.html")
 PASSWORD = os.environ.get("BRAINBOARD_PASSWORD", "")
 MAX_BODY = 1 << 20
+PROJECT_RE = re.compile(r"^/api/p/([a-z0-9][a-z0-9-]{0,47})/(state|version|op)$")
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -59,8 +69,14 @@ class Handler(BaseHTTPRequestHandler):
 
     def _state(self, data):
         data["stats"] = core.stats(data)
-        data["version"] = core.version()
+        data["version"] = core.version(data["meta"]["slug"])
         return data
+
+    def _body(self):
+        n = int(self.headers.get("Content-Length", 0))
+        if n > MAX_BODY:
+            raise OverflowError
+        return json.loads(self.rfile.read(n) or b"{}")
 
     def do_GET(self):
         if not self._authed():
@@ -69,26 +85,45 @@ class Handler(BaseHTTPRequestHandler):
         if path in ("/", "/index.html"):
             with open(INDEX, "rb") as fh:
                 return self._send(200, fh.read(), "text/html")
-        if path == "/api/state":
-            return self._send(200, self._state(core.load()))
+        if path == "/api/projects":
+            return self._send(200, {"projects": core.list_projects(), "version": core.index_version()})
         if path == "/api/version":
-            return self._send(200, {"version": core.version()})
+            return self._send(200, {"version": core.index_version()})
+        m = PROJECT_RE.match(path)
+        if m and m.group(2) != "op":
+            slug = m.group(1)
+            if not core.exists(slug):
+                return self._send(404, {"error": f"no such project: {slug}"})
+            if m.group(2) == "version":
+                return self._send(200, {"version": core.version(slug)})
+            return self._send(200, self._state(core.load(slug)))
         self._send(404, {"error": "not found"})
 
     def do_POST(self):
         if not self._authed():
             return
-        if self.path != "/api/op":
+        path = self.path.split("?")[0]
+        m = PROJECT_RE.match(path)
+        if path != "/api/projects" and not (m and m.group(2) == "op"):
             return self._send(404, {"error": "not found"})
-        n = int(self.headers.get("Content-Length", 0))
-        if n > MAX_BODY:
-            return self._send(413, {"error": "body too large"})
         try:
-            body = json.loads(self.rfile.read(n) or b"{}")
-            data = core.apply_op(body, who=str(body.get("who", "me"))[:32])
-        except (KeyError, ValueError, TypeError) as e:
+            body = self._body()
+            who = str(body.get("who", "me"))[:32]
+            if m:
+                return self._send(200, self._state(core.apply_op(m.group(1), body, who=who)))
+            if body.get("op") == "create":
+                slug = core.create_project(body.get("fields") or {}, who=who)
+                return self._send(200, {"slug": slug, "projects": core.list_projects(), "version": core.index_version()})
+            if body.get("op") == "delete":
+                core.delete_project(str(body.get("slug", "")))
+                return self._send(200, {"projects": core.list_projects(), "version": core.index_version()})
+            return self._send(400, {"error": "op must be create or delete"})
+        except OverflowError:
+            return self._send(413, {"error": "body too large"})
+        except KeyError as e:
+            return self._send(404, {"error": str(e).strip("'\"")})
+        except (ValueError, TypeError) as e:
             return self._send(400, {"error": str(e)})
-        self._send(200, self._state(data))
 
     def log_message(self, fmt, *args):
         if "/api/version" not in (args[0] if args else ""):
@@ -103,10 +138,10 @@ def main():
     a = ap.parse_args()
     if a.host not in ("127.0.0.1", "localhost", "::1") and not PASSWORD:
         sys.exit("Refusing to listen on a public interface without BRAINBOARD_PASSWORD set.")
-    core.ensure_board()
+    core.ensure_home()
     srv = ThreadingHTTPServer((a.host, a.port), Handler)
     url = f"http://{'127.0.0.1' if a.host == '0.0.0.0' else a.host}:{a.port}/"
-    print(f"brainboard: {url}  data={core.DATA}  auth={'on' if PASSWORD else 'off'}", flush=True)
+    print(f"brainboard: {url}  home={core.HOME}  auth={'on' if PASSWORD else 'off'}", flush=True)
     if not a.no_open and a.host in ("127.0.0.1", "localhost"):
         webbrowser.open(url)
     try:
