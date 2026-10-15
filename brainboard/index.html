@@ -1105,7 +1105,7 @@ const upd = (id,fields)=>api({op:"update",id,fields});
 const FIELD_MAP={dTitle:"title",dIssue:"issue",dFix:"fix",dProblem:"problem",dSetup:"setup",dResults:"results",dWhere:"location",dRelated:"related"};
 
 /* ---------- voice input ---------- */
-let rec=null, busyMic=null, warnedHttp=false;
+let rec=null, busyMic=null, httpsPort=0;
 const micBtn = t => `<button class="mic" data-mic="${t}" title="Dictate">${ic("mic","sm")}</button>`;
 function syncMic(){
   document.querySelectorAll("[data-mic]").forEach(b=>{
@@ -1120,7 +1120,10 @@ async function micClick(target){
   if(busyMic) return;
   if(rec){ if(rec.target===target) stopRec(false); else toast("Already recording into another box","alert"); return }
   if(!window.isSecureContext || !navigator.mediaDevices?.getUserMedia || !window.MediaRecorder){
-    if(!warnedHttp){warnedHttp=true;toast("Live recording needs HTTPS; pick an audio file instead","alert")}
+    if(!window.isSecureContext && httpsPort){
+      const url=`https://${location.hostname}:${httpsPort}/${location.hash}`;
+      if(confirm(`Your browser only allows the microphone on HTTPS.\n\nSwitch to ${url.split("#")[0]} ? (The first time, accept the certificate warning.)\n\nCancel = upload an audio file instead.`)){location.href=url;return}
+    } else if(!window.isSecureContext) toast("Live recording needs HTTPS; pick an audio file instead","alert");
     const f=$("#voiceFile"); f.dataset.target=target; f.value=""; f.click(); return;
   }
   let stream;
@@ -1128,8 +1131,9 @@ async function micClick(target){
   catch(e){ toast("Microphone blocked: "+e.message,"alert"); return }
   const type=["audio/webm;codecs=opus","audio/webm","audio/mp4","audio/ogg"].find(t=>MediaRecorder.isTypeSupported(t))||"";
   const mr=new MediaRecorder(stream,type?{mimeType:type}:{});
-  rec={target,mr,stream,chunks:[],t0:Date.now()};
-  mr.ondataavailable=e=>{if(e.data.size)rec?.chunks.push(e.data)};
+  const chunks=[];   // closure, not rec.chunks: rec is cleared before the recorder flushes its last chunk
+  rec={target,mr,stream,chunks,t0:Date.now()};
+  mr.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};
   mr.start(250);
   rec.timer=setInterval(syncMic,500); rec.limit=setTimeout(()=>rec&&stopRec(false),5*60*1000);
   syncMic();
@@ -1164,7 +1168,7 @@ function insertTranscript(target,text){
   toast("Transcribed","mic");
 }
 $("#voiceFile").onchange=e=>{const f=e.target.files[0]; if(f) sendAudio(f,e.target.dataset.target)};
-fetch("/api/config",{cache:"no-store"}).then(r=>r.json()).then(c=>document.body.classList.toggle("voice",!!c.voice)).catch(()=>{});
+fetch("/api/config",{cache:"no-store"}).then(r=>r.json()).then(c=>{document.body.classList.toggle("voice",!!c.voice);httpsPort=c.https_port||0}).catch(()=>{});
 
 /* ---------- events ---------- */
 document.addEventListener("click",e=>{

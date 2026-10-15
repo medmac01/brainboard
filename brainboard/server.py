@@ -136,7 +136,8 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/version":
             return self._send(200, {"version": core.index_version()})
         if path == "/api/config":
-            return self._send(200, {"voice": bool(ASR_URL), "asr_model": ASR_MODEL if ASR_URL else ""})
+            return self._send(200, {"voice": bool(ASR_URL), "asr_model": ASR_MODEL if ASR_URL else "",
+                                    "https_port": int(os.environ.get("BRAINBOARD_TLS_PORT", 0) or 0)})
         m = PROJECT_RE.match(path)
         if m and m.group(2) != "op":
             slug = m.group(1)
