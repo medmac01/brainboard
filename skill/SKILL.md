@@ -39,6 +39,20 @@ bb -p S add "New issue" --cat Inbox --priority P1 --issue "…"
 bb -p S thought "Question for the user: …"
 bb -p S list --status todo,doing --priority P1
 ```
+## Experiments (side runs: reruns, ablations, adjustments)
+Each project also tracks experiments (ids `X01`, …). `show`, `set` and `note` work on them like on items.
+```bash
+bb -p S exp                                  # list: running, planned, then finished
+bb -p S exp-add "Rerun baseline with seed 7" --problem "Is the gain seed noise?" \
+   --setup "config/command/model" --where "host:~/runs/x" --related E09
+bb -p S set X03 status=running               # stamps started; done/failed/dropped stamps ended
+bb -p S set X03 status=done outcome=worked results="F1 .41 → .44 (3 seeds)"
+```
+Experiment statuses: `planned running done failed dropped`. Outcome: `worked inconclusive didnt` (or empty).
+Log an experiment when you start a run, and fill in `results` (with the real numbers) when it finishes.
+Link it to the items it informs with `related`.
+
+## Conventions
 - Statuses: `todo doing decide blocked done skip`. Priorities: `P1 P2 P3`.
 - When something needs the user's choice, set `status=decide` and lay out the options. Don't decide for them.
 - Put findings, what you changed (with file:line), and open questions in notes, not only in chat.

@@ -1,8 +1,8 @@
 # brainboard
 
 A small, calm, self-hosted board for when your head is too full. It holds your **projects**, and inside each
-one your open items (with priorities and % progress), the decisions waiting on you, a brain-dump inbox and a
-notes thread on every item. AI agents (Claude Code, Codex, …) use the same board through a CLI and an
+one your open items (with priorities and % progress), the decisions waiting on you, the side **experiments**
+you're running (setup, results, outcome), a brain-dump inbox and a notes thread on every item and experiment. AI agents (Claude Code, Codex, …) use the same board through a CLI and an
 installable skill, so the board is the shared interface between you and them.
 
 - **Zero dependencies.** Python 3.9+ standard library and a single HTML file.
@@ -48,6 +48,8 @@ python3 brainboard/cli.py projects                     # * = project commands wi
 python3 brainboard/cli.py project-add "Thesis" --icon 🎓 --cats "Chapters,Experiments,Admin"
 python3 brainboard/cli.py -p thesis inbox              # notes/thoughts waiting for you, per item
 python3 brainboard/cli.py -p thesis summary | next | list | show ID | set ID k=v… | note ID "…" | add "title" | thought "…" | thoughts
+python3 brainboard/cli.py -p thesis exp | exp-add "Rerun with seed 7" --problem "…" --where host:~/runs --related E09
+python3 brainboard/cli.py -p thesis set X01 status=done outcome=worked results="…"
 python3 brainboard/cli.py -p thesis project-set color=#0e8f87 archived=yes
 ```
 Which project? `-p`, then `$BRAINBOARD_PROJECT`, then a `.brainboard` file (one line, the slug) in the cwd or a
@@ -57,7 +59,9 @@ parent, then the config default (`cli.py use SLUG`), then the only active projec
 ## Data
 `<home>/projects/<slug>.json` = `meta` (title, description, icon, color, categories, people, sources, archived,
 rev) · `items[]` (id, title, category, priority P1–P3, status todo/doing/decide/blocked/done/skip, progress,
-owner, location, anchor, issue, fix, sources, tags, notes[]) · `thoughts[]` · `activity[]`.
+owner, location, anchor, issue, fix, sources, tags, notes[]) · `experiments[]` (id X…, title, status
+planned/running/done/failed/dropped, outcome worked/inconclusive/didnt, owner, problem, setup, location,
+results, related item ids, started, ended, notes[]) · `thoughts[]` · `activity[]`.
 
 HTTP API: `GET /api/projects`, `POST /api/projects` (`create`/`delete`), `GET /api/p/<slug>/state|version`,
 `POST /api/p/<slug>/op`.

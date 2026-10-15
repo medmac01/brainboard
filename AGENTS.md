@@ -19,6 +19,8 @@ Read open thoughts: project-specific rules (e.g. changelog conventions) live on 
 - Put findings, questions and what you changed (file:line) in notes: `note E05 "…"`.
 - If it needs the person's call, set `status=decide` and lay out the options in a note. Don't decide for them.
 - New issue? `add "title" --cat "<category>" --priority P1 --issue "…"`.
+- Running a side experiment (rerun, ablation, tweak)? `exp-add "title" --problem … --setup … --where … --related E05`,
+  then `set X01 status=running`, and at the end `set X01 status=done outcome=worked results="…"`.
 
 Statuses: `todo doing decide blocked done skip` · Priorities: `P1 P2 P3`.
 Prefer the CLI to editing the JSON by hand: it locks the file, logs activity and bumps `rev`.

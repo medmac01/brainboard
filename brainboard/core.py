@@ -38,6 +38,9 @@ ITEM_FIELDS = {
     "title", "category", "priority", "kind", "status", "progress", "owner",
     "location", "anchor", "issue", "fix", "sources", "tex", "tags", "pinned",
 }
+EXP_STATUSES = ["planned", "running", "done", "failed", "dropped"]
+OUTCOMES = ["", "worked", "inconclusive", "didnt"]
+EXP_FIELDS = {"title", "status", "outcome", "owner", "problem", "setup", "location", "results", "related", "tags"}
 META_FIELDS = {"title", "description", "icon", "color", "categories", "people", "archived"}
 SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,47}$")
 ACTIVITY_CAP = 500
@@ -72,7 +75,7 @@ def empty_board(title="My project", **meta):
          "created": now(), "updated": now(), "updated_by": "brainboard", "archived": False,
          "sources": {}, "categories": list(DEFAULT_CATEGORIES), "people": list(DEFAULT_PEOPLE)}
     m.update(meta)
-    return {"meta": m, "items": [], "thoughts": [], "activity": []}
+    return {"meta": m, "items": [], "experiments": [], "thoughts": [], "activity": []}
 
 
 def ensure_home():
@@ -159,6 +162,42 @@ def _clean_fields(fields):
     return fields
 
 
+def _clean_exp(fields):
+    bad = set(fields) - EXP_FIELDS
+    if bad:
+        raise ValueError(f"unknown experiment field(s): {', '.join(sorted(bad))}")
+    if "status" in fields and fields["status"] not in EXP_STATUSES:
+        raise ValueError(f"experiment status must be one of {EXP_STATUSES}")
+    if "outcome" in fields and fields["outcome"] not in OUTCOMES:
+        raise ValueError(f"outcome must be one of {OUTCOMES[1:]} (or empty)")
+    for k in ("related", "tags"):
+        if k in fields:
+            fields[k] = _as_list(fields[k])
+    return fields
+
+
+def _exp_times(fields, ex):
+    """Stamp started/ended when an experiment's status moves."""
+    st = fields.get("status")
+    if st == "running" and not ex.get("started"):
+        fields["started"] = now()
+    if st in ("done", "failed", "dropped") and ex.get("status") not in ("done", "failed", "dropped"):
+        fields["ended"] = now()
+    if st in ("planned", "running"):
+        fields["ended"] = ""
+
+
+def _locate(data, id_):
+    """Find an item or an experiment by id. Returns (record, is_experiment)."""
+    for x in data["items"]:
+        if x["id"] == id_:
+            return x, False
+    for x in data.setdefault("experiments", []):
+        if x["id"] == id_:
+            return x, True
+    raise KeyError(f"no such id: {id_}")
+
+
 def _as_list(v):
     if isinstance(v, str):
         v = re.split(r"[,\n]", v)
@@ -206,7 +245,18 @@ def apply_op(slug, op, who="me"):
     with locked(slug):
         data = load(slug)
         items, thoughts = data["items"], data.setdefault("thoughts", [])
-        if kind == "update":
+        exps = data.setdefault("experiments", [])
+        if kind == "update" and _locate(data, op["id"])[1]:
+            ex = _find(exps, op["id"])
+            fields = _clean_exp(dict(op["fields"]))
+            _exp_times(fields, ex)
+            changed = {k: v for k, v in fields.items() if ex.get(k) != v}
+            if not changed:
+                return data
+            ex.update(changed)
+            ex["updated"] = now()
+            _log(data, who, _describe({k: v for k, v in changed.items() if k not in ("started", "ended")}), ex["id"])
+        elif kind == "update":
             it = _find(items, op["id"])
             fields = _clean_fields(dict(op["fields"]))
             if fields.get("status") == "done":
@@ -221,6 +271,15 @@ def apply_op(slug, op, who="me"):
             it.update(changed)
             it["updated"] = now()
             _log(data, who, _describe(changed), it["id"])
+        elif kind == "add" and op.get("coll") == "experiments":
+            fields = _clean_exp(dict(op["fields"]))
+            ex = {"id": _next_id(exps, "X"), "title": "", "status": "planned", "outcome": "", "owner": "",
+                  "problem": "", "setup": "", "location": "", "results": "", "related": [], "tags": [],
+                  "notes": [], "started": "", "ended": "", "created": now(), "updated": now()}
+            _exp_times(fields, ex)
+            ex.update(fields)
+            exps.append(ex)
+            _log(data, who, f"added experiment “{ex['title']}”", ex["id"])
         elif kind == "add":
             fields = _clean_fields(dict(op["fields"]))
             it = {
@@ -233,11 +292,11 @@ def apply_op(slug, op, who="me"):
             items.append(it)
             _log(data, who, f"added “{it['title']}”", it["id"])
         elif kind == "delete":
-            it = _find(items, op["id"])
-            items.remove(it)
+            it, is_exp = _locate(data, op["id"])
+            (exps if is_exp else items).remove(it)
             _log(data, who, f"deleted “{it['title']}”", it["id"])
         elif kind == "note":
-            it = _find(items, op["id"])
+            it = _locate(data, op["id"])[0]
             text = op["text"].strip()
             if not text:
                 raise ValueError("empty note")
@@ -307,7 +366,8 @@ def stats(data):
     tot = sum(w[i["priority"]] for i in live) or 1
     pct = sum(w[i["priority"]] * (100 if i["status"] == "done" else i.get("progress", 0)) for i in live) / tot
     by = {s: sum(1 for i in data["items"] if i["status"] == s) for s in STATUSES}
-    return {"percent": round(pct, 1), "counts": by, "total": len(data["items"]),
+    ex = {s: sum(1 for x in data.get("experiments", []) if x["status"] == s) for s in EXP_STATUSES}
+    return {"percent": round(pct, 1), "counts": by, "total": len(data["items"]), "experiments": ex,
             "open_thoughts": sum(1 for t in data.get("thoughts", []) if not t.get("done"))}
 
 

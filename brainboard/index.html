@@ -233,6 +233,26 @@ h2{font-size:12px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink3
 .bcard .t{font-size:13px;margin:4px 0 6px;line-height:1.35}
 .bcard .m{display:flex;gap:6px;align-items:center}
 
+/* experiments */
+.xrow{display:grid;grid-template-columns:auto auto minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 12px;border-radius:9px;cursor:pointer}
+.xrow:hover{background:var(--panel2)}
+.xrow+.xrow{border-top:1px solid var(--line)}
+.xrow:hover+.xrow,.xrow:hover{border-color:transparent}
+.xst{display:flex}
+.xst .ic{width:18px;height:18px}
+.xmain{min-width:0}
+.xsub{color:var(--ink3);font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.xtime{color:var(--ink3);font-size:12px;white-space:nowrap;display:inline-flex;align-items:center;gap:4px;font-variant-numeric:tabular-nums}
+.chip.out{border:1px solid currentColor;background:color-mix(in srgb,currentColor 9%,var(--panel))}
+.chip.rel{background:var(--panel2);border:1px solid var(--line);color:var(--ink2);font-family:ui-monospace,Menlo,monospace;font-weight:600;cursor:pointer}
+.chip.rel:hover{border-color:var(--accent);color:var(--accent)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px}
+.timeline{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--ink3);margin:-4px 0 4px}
+.timeline span{display:inline-flex;align-items:center;gap:5px}
+.resbox{background:color-mix(in srgb,var(--doing) 6%,var(--panel));border-color:color-mix(in srgb,var(--doing) 26%,var(--line))}
+.xside .xrow{padding:8px 10px}
+@media (max-width:640px){.xrow{grid-template-columns:auto minmax(0,1fr) auto}.xrow .rid,.xrow .chip.rel{display:none}}
+
 /* thoughts */
 .thoughts{max-width:760px}
 .th{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;padding:12px 14px;align-items:start}
@@ -381,6 +401,14 @@ body.in-project .proj-only{display:flex}
   <symbol id="i-inbox" viewBox="0 0 24 24"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5h13L22 12v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6z"/></symbol>
   <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></symbol>
   <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+  <symbol id="i-flask" viewBox="0 0 24 24"><path d="M9 3h6M10 3v6.5L4.6 18.4A2 2 0 0 0 6.3 21.5h11.4a2 2 0 0 0 1.7-3.1L14 9.5V3"/><path d="M7.2 15h9.6"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m10 8.5 5.2 3.5-5.2 3.5z" fill="currentColor"/></symbol>
+  <symbol id="i-xcircle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m9 9 6 6M15 9l-6 6"/></symbol>
+  <symbol id="i-up" viewBox="0 0 24 24"><path d="m3 17 6-6 4 4 8-8M15 7h6v6"/></symbol>
+  <symbol id="i-downtrend" viewBox="0 0 24 24"><path d="m3 7 6 6 4-4 8 8M15 17h6v-6"/></symbol>
+  <symbol id="i-wave" viewBox="0 0 24 24"><path d="M3 12c3-4 6 4 9 0s6-4 9 0"/></symbol>
+  <symbol id="i-server" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="7" rx="2"/><rect x="3" y="13" width="18" height="7" rx="2"/><path d="M7 7.5h.01M7 16.5h.01"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 15v2M11 11v6M15 7v10M19 12v5"/></symbol>
   <symbol id="i-logo" viewBox="0 0 24 24"><rect x="4" y="5" width="4" height="14" rx="1.6" fill="#fff" stroke="none"/><rect x="10" y="5" width="4" height="9" rx="1.6" fill="#fff" stroke="none" opacity=".82"/><rect x="16" y="5" width="4" height="5" rx="1.6" fill="#fff" stroke="none" opacity=".62"/></symbol>
 </svg>
 
@@ -405,6 +433,7 @@ body.in-project .proj-only{display:flex}
       <button data-tab="focus"><svg class="ic"><use href="#i-sun"/></svg>Today</button>
       <button data-tab="items"><svg class="ic"><use href="#i-list"/></svg>Items <span class="n" id="nItems"></span></button>
       <button data-tab="board"><svg class="ic"><use href="#i-kanban"/></svg>Board</button>
+      <button data-tab="experiments"><svg class="ic"><use href="#i-flask"/></svg>Experiments <span class="n" id="nExps"></span></button>
       <button data-tab="thoughts"><svg class="ic"><use href="#i-bulb"/></svg>Thoughts <span class="n" id="nThoughts"></span></button>
       <button data-tab="activity"><svg class="ic"><use href="#i-pulse"/></svg>Activity</button>
       <button data-tab="settings"><svg class="ic"><use href="#i-sliders"/></svg>Settings</button>
@@ -432,6 +461,7 @@ body.in-project .proj-only{display:flex}
       <h2><svg class="ic sm"><use href="#i-help"/></svg>How this works</h2>
       <p>brainboard holds your <b>projects</b>. Each project has its own items, decisions, thoughts and activity, stored as one JSON file on the server. This page, Claude, Codex and any other agent read and write the same files, so the board is the shared interface between you and them. Changes from anyone show up here within ~2 seconds.</p>
       <p><b>Statuses.</b> <span class="chip st"><svg class="ic"><use href="#i-todo"/></svg>To do</span> → <span class="chip st"><svg class="ic"><use href="#i-doing"/></svg>Doing</span> → <span class="chip st"><svg class="ic"><use href="#i-done"/></svg>Done</span>. Use <span class="chip st"><svg class="ic"><use href="#i-decide"/></svg>Needs decision</span> when something is waiting on <i>you</i> to choose, <span class="chip st"><svg class="ic"><use href="#i-blocked"/></svg>Blocked</span> when it's waiting on something else, and <span class="chip st"><svg class="ic"><use href="#i-skip"/></svg>Won't fix</span> to drop it (dropped items don't count against your %).</p>
+      <p><b>Experiments.</b> Each project also has an Experiments tab for side runs (reruns, ablations, quick adjustments): the question, the setup, where it runs, the results and an outcome (<span class="chip out" style="color:var(--done)">Worked</span> <span class="chip out" style="color:var(--p2)">Inconclusive</span> <span class="chip out" style="color:var(--p1)">Didn't work</span>). Link an experiment to the items it informs, and it shows up on those items too. Experiments don't count toward the % ring.</p>
       <p><b>The % ring</b> is priority-weighted: a P1 item counts 3×, P2 2×, P3 1×. Partial progress counts too, so move the slider as you go.</p>
       <p><b>Talking to agents.</b> Leave a note on an item (“Claude: draft the fix for this”) or drop a thought, then tell the agent “check the board”. It answers in the same note thread.</p>
       <p><b>Shortcuts.</b> <kbd>/</kbd> search · <kbd>t</kbd> new thought · <kbd>g</kbd> all projects · <kbd>Esc</kbd> close panel · <kbd>⌘</kbd><kbd>↵</kbd> save a text box</p>
@@ -449,6 +479,8 @@ bb -p SLUG inbox                  # notes and thoughts waiting for the agent
 bb -p SLUG next                   # what to work on
 bb -p SLUG set E03 status=doing progress=40
 bb -p SLUG note E03 "Changed …"
+bb -p SLUG exp-add "Rerun with seed 7" --where host:~/runs --related E03
+bb -p SLUG set X01 status=done outcome=worked results="…"
 echo SLUG > .brainboard           # pin a repo to a project</pre>
     </div>
   </section>
@@ -479,6 +511,7 @@ echo SLUG > .brainboard           # pin a repo to a project</pre>
             <textarea id="quickThought" placeholder="Anything on your mind: an idea, a worry, a question for an agent…  (⌘↵ to save)"></textarea>
             <div class="right"><button class="btn primary small" id="quickSave"><svg class="ic sm"><use href="#i-plus"/></svg>Save thought</button></div>
           </div>
+          <div class="card bars xside" id="xSide"></div>
           <div class="card bars"><h2><svg class="ic sm"><use href="#i-folder"/></svg>By category</h2><div id="catBars"></div></div>
           <div class="card bars"><h2><svg class="ic sm"><use href="#i-flag"/></svg>By priority</h2><div id="priBars"></div></div>
           <div class="card bars"><h2><svg class="ic sm"><use href="#i-user"/></svg>By owner</h2><div id="ownerBars"></div></div>
@@ -505,6 +538,15 @@ echo SLUG > .brainboard           # pin a repo to a project</pre>
     <section class="tab" id="tab-board">
       <p class="muted" style="margin:0 0 12px">Drag cards between columns. Click a card for details.</p>
       <div class="board" id="board"></div>
+    </section>
+
+    <section class="tab" id="tab-experiments">
+      <div class="filters">
+        <div class="searchbox"><svg class="ic"><use href="#i-search"/></svg><input class="search" id="xq" placeholder="Search experiments, setups, results, notes…"></div>
+        <div class="seg" id="fXst"><button data-v="">All</button><button data-v="running">Running</button><button data-v="planned">Planned</button><button data-v="finished">Finished</button></div>
+        <button class="btn small primary" id="addExp"><svg class="ic sm"><use href="#i-plus"/></svg>New experiment</button>
+      </div>
+      <div id="xgroups"></div>
     </section>
 
     <section class="tab" id="tab-thoughts">
@@ -547,6 +589,12 @@ const STATUS = {
   decide:{label:"Needs decision",c:"var(--decide)",i:"decide"}, blocked:{label:"Blocked",c:"var(--blocked)",i:"blocked"},
   done:{label:"Done",c:"var(--done)",i:"done"}, skip:{label:"Won't fix",c:"var(--skip)",i:"skip"}
 };
+const XST = {
+  planned:{label:"Planned",c:"var(--todo)",i:"todo"}, running:{label:"Running",c:"var(--doing)",i:"play"},
+  done:{label:"Done",c:"var(--done)",i:"done"}, failed:{label:"Failed",c:"var(--blocked)",i:"xcircle"},
+  dropped:{label:"Dropped",c:"var(--skip)",i:"skip"}
+};
+const OUTCOME = {worked:{label:"Worked",c:"var(--done)",i:"up"}, inconclusive:{label:"Inconclusive",c:"var(--p2)",i:"wave"}, didnt:{label:"Didn't work",c:"var(--p1)",i:"downtrend"}};
 const PRI = {P1:"High",P2:"Medium",P3:"Low"};
 const PW = {P1:3,P2:2,P3:1};
 const OWNER_C = {me:"#2f8a57",claude:"#c46a3a",codex:"#1f8f8a",agent:"#4f5bd5",prof:"#a3389d"};
@@ -558,11 +606,11 @@ const TEMPLATES = {
   software:{label:"Software",cats:["Inbox","Features","Bugs","Infra","Docs"]},
   personal:{label:"Personal",cats:["Inbox","Health","Errands","Learning","Admin"]},
 };
-const TABS = ["focus","items","board","thoughts","activity","settings"];
+const TABS = ["focus","items","board","experiments","thoughts","activity","settings"];
 const ME = "me";
 let P = [], pVersion = null;          // project list (home)
 let cur = null, S = null, version = null, openId = null, pendingRefresh = false, view = "home";
-const ui = load("ui",{tab:{},pri:"",status:"open",owner:"",cat:"",closed:{},archived:false});
+const ui = load("ui",{tab:{},pri:"",status:"open",owner:"",cat:"",closed:{},archived:false,xst:""});
 if(typeof ui.tab!=="object") ui.tab={};
 
 function load(k,d){try{return Object.assign({},d,JSON.parse(localStorage.getItem("bb."+k)||"{}"))}catch(e){return d}}
@@ -650,7 +698,7 @@ async function route(){
   document.querySelectorAll("#nav button").forEach(b=>b.classList.toggle("on",b.dataset.tab===tab));
   document.querySelectorAll("#view-project .tab").forEach(s=>s.classList.toggle("on",s.id==="tab-"+tab));
   renderAll();
-  if(r.item && S.items.some(i=>i.id===r.item)) openDrawer(r.item,false);
+  if(r.item && findRec(r.item)) openDrawer(r.item,false);
   else if(switching) window.scrollTo({top:0});
 }
 function showView(v){document.querySelectorAll(".view").forEach(s=>s.classList.toggle("on",s.id==="view-"+v))}
@@ -685,7 +733,7 @@ function renderHome(){
     const s=p.stats, c=s.counts;
     return `<a class="card pcard ${p.archived?"archived":""}" href="#/${encodeURIComponent(p.slug)}" style="--pc:${esc(p.color)}">
       <div class="top">${ptile(p,"lg")}<div style="flex:1;min-width:0"><h3>${esc(p.title)}</h3>${p.description?`<p class="desc">${esc(p.description)}</p>`:`<p class="desc">${esc(p.slug)}</p>`}</div>${ring(s.percent,44,5,"var(--pc)")}</div>
-      <div class="stats"><span>${ic("todo","sm")}<b>${pOpen(p)}</b> open</span>${c.decide?`<span style="color:var(--decide)">${ic("decide","sm")}<b>${c.decide}</b> to decide</span>`:""}${c.doing?`<span style="color:var(--doing)">${ic("doing","sm")}<b>${c.doing}</b> doing</span>`:""}${s.open_thoughts?`<span>${ic("bulb","sm")}<b>${s.open_thoughts}</b></span>`:""}${p.archived?`<span>${ic("archive","sm")}archived</span>`:""}</div>
+      <div class="stats"><span>${ic("todo","sm")}<b>${pOpen(p)}</b> open</span>${c.decide?`<span style="color:var(--decide)">${ic("decide","sm")}<b>${c.decide}</b> to decide</span>`:""}${c.doing?`<span style="color:var(--doing)">${ic("doing","sm")}<b>${c.doing}</b> doing</span>`:""}${s.experiments&&s.experiments.running?`<span style="color:var(--doing)">${ic("flask","sm")}<b>${s.experiments.running}</b> running</span>`:""}${s.open_thoughts?`<span>${ic("bulb","sm")}<b>${s.open_thoughts}</b></span>`:""}${p.archived?`<span>${ic("archive","sm")}archived</span>`:""}</div>
       <div class="track"><i style="width:${s.percent}%"></i></div>
       <div class="foot">${ic("clock","sm")}updated ${ago(p.updated)} by ${esc(p.updated_by||"?")}<span style="margin-left:auto">${c.done}/${s.total} done</span></div></a>`}).join("")
     +`<button class="card pcard new" data-newproj>${ic("plus","xl")}New project</button>`;
@@ -709,9 +757,11 @@ function render(){
   $("#nItems").textContent=items.filter(isOpen).length;
   const openTh=(S.thoughts||[]).filter(t=>!t.done).length;
   $("#nThoughts").textContent=openTh||""; $("#nThoughts").style.display=openTh?"":"none";
+  const runX=exps().filter(x=>x.status==="running").length;
+  $("#nExps").textContent=runX?runX+" running":""; $("#nExps").style.display=runX?"":"none";
   const t=curTab();
   if(t==="focus") renderFocus(); if(t==="items") renderItems(); if(t==="board") renderBoard();
-  if(t==="thoughts") renderThoughts(); if(t==="activity") renderActivity(); if(t==="settings") renderSettings();
+  if(t==="experiments") renderExps(); if(t==="thoughts") renderThoughts(); if(t==="activity") renderActivity(); if(t==="settings") renderSettings();
   if(openId) renderDrawer(openId);
 }
 function heroSub(){
@@ -749,6 +799,9 @@ function renderFocus(){
   $("#doingList").innerHTML=doing.length?doing.map(i=>rowHTML(i)).join(""):emptyHTML("doing","Nothing in progress. Start something from “Up next”.");
   const next=items.filter(i=>i.status==="todo").sort(byPri).slice(0,7);
   $("#nextList").innerHTML=next.length?next.map(i=>rowHTML(i)).join(""):emptyHTML("inbox",items.length?"Queue is empty.":"No items yet. Add one from the Items tab, or let an agent add them.");
+  const run=exps().filter(x=>x.status==="running"), side=$("#xSide");
+  side.style.display=exps().length?"":"none";
+  side.innerHTML=`<h2>${ic("flask","sm")}Running experiments</h2>`+(run.length?run.map(x=>xrowHTML(x,true)).join(""):`<div class="muted" style="font-size:13px">Nothing running. <a data-tab="experiments" style="cursor:pointer">See all experiments</a></div>`);
   const cats=allCats().filter(c=>items.some(i=>i.category===c));
   $("#catBars").innerHTML=cats.map(c=>barHTML(c,items.filter(i=>i.category===c),"cat")).join("")||`<div class="muted" style="font-size:13px">No items yet.</div>`;
   $("#priBars").innerHTML=["P1","P2","P3"].map(p=>barHTML(`${p} · ${PRI[p]}`,items.filter(i=>i.priority===p),"pri",p)).join("");
@@ -798,6 +851,50 @@ function renderBoard(){
       ${its.map(i=>`<div class="bcard" draggable="true" data-id="${i.id}"><div class="m"><span class="rid">${i.id}</span><span class="chip ${i.priority}">${i.priority}</span>${i.status==="skip"?'<span class="chip st">won\'t fix</span>':""}<span style="margin-left:auto;display:flex;gap:6px;align-items:center">${(i.notes||[]).length?`<span class="muted" style="font-size:11.5px;display:flex;gap:3px;align-items:center">${ic("msg","sm")}${i.notes.length}</span>`:""}${ownerDot(i.owner)}</span></div>
         <div class="t">${esc(i.title)}</div>${i.progress>0&&i.status!=="done"?`<div class="mini" style="width:100%"><i style="width:${i.progress}%"></i></div>`:""}</div>`).join("")}</div>`}).join("");
 }
+const exps = () => S.experiments||[];
+function dur(a,b){ if(!a) return ""; const s=Math.max(0,((b?new Date(b):Date.now())-new Date(a))/1000);
+  if(s<3600) return Math.max(1,Math.round(s/60))+" min"; if(s<86400) return Math.floor(s/3600)+" h "+Math.round(s%3600/60)+" m"; return Math.floor(s/86400)+" d "+Math.round(s%86400/3600)+" h"; }
+function xTime(x){
+  if(x.status==="running") return `<span class="xtime" title="started ${esc(x.started)}">${ic("clock","sm")}${dur(x.started)}</span>`;
+  if(x.ended) return `<span class="xtime" title="${esc(x.ended)}">${ago(x.ended)}</span>`;
+  return `<span class="xtime">${ago(x.updated)}</span>`;
+}
+const outChip = o => o&&OUTCOME[o]?`<span class="chip out" style="color:${OUTCOME[o].c}">${ic(OUTCOME[o].i)}${OUTCOME[o].label}</span>`:"";
+const firstLine = t => (t||"").split("\n").find(l=>l.trim())||"";
+function xrowHTML(x,compact){
+  const sub=firstLine(x.results)||firstLine(x.problem)||firstLine(x.setup);
+  return `<div class="xrow" data-id="${x.id}">
+    <span class="xst" style="color:${XST[x.status].c}" title="${XST[x.status].label}">${ic(XST[x.status].i)}</span>
+    <span class="rid">${x.id}</span>
+    <div class="xmain"><div class="rtitle">${esc(x.title)}</div>${sub&&!compact?`<div class="xsub">${esc(sub)}</div>`:""}</div>
+    <span class="rmeta">${compact?"":outChip(x.outcome)}${compact?"":(x.related||[]).slice(0,3).map(r=>`<span class="chip rel" data-open="${esc(r)}">${esc(r)}</span>`).join("")}
+      ${!compact&&(x.notes||[]).length?`<span class="muted" style="font-size:12px;display:flex;align-items:center;gap:3px">${ic("msg","sm")}${x.notes.length}</span>`:""}
+      ${xTime(x)}${ownerDot(x.owner)}</span></div>`;
+}
+function renderExps(){
+  document.querySelectorAll("#fXst button").forEach(b=>b.classList.toggle("on",b.dataset.v===(ui.xst||"")));
+  const q=$("#xq").value.trim().toLowerCase();
+  const its=exps().filter(x=>{
+    if(ui.xst==="finished"){ if(!["done","failed","dropped"].includes(x.status)) return false }
+    else if(ui.xst && x.status!==ui.xst) return false;
+    if(q){ const hay=[x.id,x.title,x.problem,x.setup,x.results,x.location,(x.related||[]).join(" "),(x.tags||[]).join(" "),(x.notes||[]).map(n=>n.text).join(" ")].join(" ").toLowerCase();
+      if(!q.split(/\s+/).every(w=>hay.includes(w))) return false; }
+    return true;
+  });
+  const order=["running","planned","done","failed","dropped"];
+  const groups=order.filter(s=>its.some(x=>x.status===s));
+  $("#xgroups").innerHTML=groups.length?groups.map(s=>{
+    const g=its.filter(x=>x.status===s).sort((a,b)=>(b.updated||"").localeCompare(a.updated||""));
+    const key=cur+"/x/"+s;
+    return `<div class="group ${ui.closed[key]?"closed":""}"><div class="ghead" data-group="${esc(key)}"><span class="caret">${ic("down","sm")}</span><span style="color:${XST[s].c};display:flex">${ic(XST[s].i,"sm")}</span><h3>${XST[s].label}</h3><span class="gp">${g.length}</span></div>
+      <div class="card list">${g.map(x=>xrowHTML(x)).join("")}</div></div>`}).join("")
+    :`<div class="card">${emptyHTML("flask",exps().length?"No experiments match.":"No experiments yet. Track reruns, ablations and quick checks here: what you ran, why, and what came out.")}</div>`;
+}
+$("#xq").addEventListener("input",renderExps);
+$("#fXst").onclick=e=>{const b=e.target.closest("button");if(!b)return;ui.xst=b.dataset.v;persist();renderExps()};
+$("#addExp").onclick=async()=>{const t=prompt("What's the experiment? (short title)");if(!t)return;
+  await api({op:"add",coll:"experiments",fields:{title:t,status:ui.xst==="running"?"running":"planned"}});openDrawer(exps()[exps().length-1].id)};
+
 function renderThoughts(){
   const show=$("#showDoneThoughts").checked;
   const ts=(S.thoughts||[]).filter(t=>show||!t.done);
@@ -914,10 +1011,51 @@ function openDrawer(id,push=true){openId=id;renderDrawer(id);$("#drawer").classL
 function closeDrawer(silent){openId=null;$("#drawer").classList.remove("on");$("#scrim").classList.remove("on");$("#drawer").setAttribute("aria-hidden","true");
   if(!silent && cur) history.replaceState(null,"",itemHash());
   if(pendingRefresh){pendingRefresh=false;refresh()}}
+function notesHTML(it,keepNote){
+  return `<div class="sec"><h5>${ic("msg","sm")}Notes & conversation (${(it.notes||[]).length})</h5>
+        ${(it.notes||[]).map(n=>`<div class="note" style="--oc:${ownerColor(n.who)}"><div class="h">${ownerDot(n.who)}<b>${esc(n.who)}</b> · ${ago(n.at)}</div><div class="x">${esc(n.text)}</div></div>`).join("")}
+        <textarea class="field" id="noteInput" rows="3" placeholder="Your thoughts, a decision, or a request for an agent…  (⌘↵ to post)">${esc(keepNote)}</textarea>
+        <div class="right"><button class="btn primary small" id="notePost">${ic("msg","sm")}Post note</button></div>
+      </div>`;
+}
+const rows = (t,min,max,per=80) => Math.min(max,Math.max(min,Math.ceil((t||"").length/per)+(t||"").split("\n").length-1));
+function renderExpDrawer(x,keepNote){
+  const known=new Set(S.items.map(i=>i.id));
+  $("#drawer").innerHTML=`<div class="dhead"><span class="rid">${x.id}</span>
+      <textarea class="dtitle" id="dTitle" rows="1">${esc(x.title)}</textarea>
+      <button class="iconbtn" id="dClose" title="Close (Esc)">${ic("x")}</button></div>
+    <div class="dbody">
+      <div class="timeline">${ic("flask","sm")}<span>Experiment</span>
+        ${x.started?`<span>${ic("play","sm")}started ${ago(x.started)}</span>`:""}
+        ${x.ended?`<span>${ic("done","sm")}ended ${ago(x.ended)}</span>`:""}
+        ${x.started?`<span>${ic("clock","sm")}${x.status==="running"?"running for ":"took "}${dur(x.started,x.ended||null)}</span>`:""}</div>
+      <div class="ctrl" style="margin-top:12px">
+        <label>Status</label><div class="pills">${Object.entries(XST).map(([k,v])=>`<button class="pill ${x.status===k?"on":""}" data-set-status="${k}" style="${x.status===k?`color:${v.c}`:""}"><span style="color:${v.c};display:flex">${ic(v.i,"sm")}</span>${v.label}</button>`).join("")}</div>
+        <label>Outcome</label><div class="pills"><button class="pill ${!x.outcome?"on":""}" data-set-outcome="">not yet</button>${Object.entries(OUTCOME).map(([k,v])=>`<button class="pill ${x.outcome===k?"on":""}" data-set-outcome="${k}" style="${x.outcome===k?`color:${v.c}`:""}"><span style="color:${v.c};display:flex">${ic(v.i,"sm")}</span>${v.label}</button>`).join("")}</div>
+        <label>Owner</label><div class="pills">${["",...(S.meta.people||[])].map(o=>`<button class="pill ${(x.owner||"")===o?"on":""}" data-set-owner="${esc(o)}">${o?ownerDot(o)+esc(o):"nobody"}</button>`).join("")}</div>
+        <label>Where</label><input class="inp mono" id="dWhere" value="${esc(x.location)}" placeholder="host, path, job id, notebook…">
+        <label>Related</label><div><input class="inp mono" id="dRelated" value="${esc((x.related||[]).join(", "))}" placeholder="item ids, e.g. E09, N03">
+          ${(x.related||[]).length?`<div class="srcs" style="margin-top:6px">${x.related.map(r=>known.has(r)?`<span class="chip rel" data-open="${esc(r)}" title="${esc(S.items.find(i=>i.id===r).title)}">${esc(r)}</span>`:`<span class="chip tag">${esc(r)}?</span>`).join("")}</div>`:""}</div>
+      </div>
+      <div class="sec"><h5>${ic("alert","sm")}Problem / question</h5><textarea class="field" id="dProblem" rows="${rows(x.problem,2,10)}" placeholder="Why run this? What do you expect?">${esc(x.problem)}</textarea></div>
+      <div class="sec"><h5>${ic("server","sm")}Setup</h5><textarea class="field mono" id="dSetup" rows="${rows(x.setup,2,12,90)}" placeholder="What changed vs. the main run: config, command, model, seeds…">${esc(x.setup)}</textarea></div>
+      <div class="sec"><h5>${ic("chart","sm")}Results</h5><textarea class="field mono resbox" id="dResults" rows="${rows(x.results,4,20,90)}" placeholder="Numbers, tables, what came out and what it means…">${esc(x.results)}</textarea></div>
+      ${(x.tags||[]).length?`<div class="sec"><h5>${ic("link","sm")}Tags</h5><div class="srcs">${x.tags.map(t=>`<span class="chip tag">#${esc(t)}</span>`).join("")}</div></div>`:""}
+      ${notesHTML(x,keepNote)}
+      <div class="sec" style="margin-top:30px;display:flex;justify-content:space-between;align-items:center">
+        <span class="muted" style="font-size:12px;display:flex;gap:5px;align-items:center">${ic("clock","sm")}Updated ${ago(x.updated)}</span>
+        <button class="ghost danger" id="dDelete">${ic("trash","sm")}Delete experiment</button></div>
+    </div>`;
+  autosize($("#dTitle"));
+}
+const findRec = id => S.items.find(i=>i.id===id) || exps().find(x=>x.id===id);
 function renderDrawer(id){
-  const it=S.items.find(i=>i.id===id); if(!it){closeDrawer();return}
   const D=$("#drawer");
   const keepNote=D.querySelector("#noteInput")?.value||"";
+  const ex=exps().find(x=>x.id===id);
+  if(ex) return renderExpDrawer(ex,keepNote);
+  const it=S.items.find(i=>i.id===id); if(!it){closeDrawer();return}
+  const linked=exps().filter(x=>(x.related||[]).includes(it.id));
   const src=(it.sources||[]).map(s=>{const k=s[0];const m=S.meta.sources?.[k];return `<span class="chip tag" title="${esc(m?m.desc:"")}">${esc(m?m.label:k)} · ${esc(s.slice(1).replace(/^-/,""))}</span>`}).join("");
   D.innerHTML=`<div class="dhead"><span class="rid">${it.id}</span>
       <textarea class="dtitle" id="dTitle" rows="1">${esc(it.title)}</textarea>
@@ -936,11 +1074,8 @@ function renderDrawer(id){
       <div class="sec"><h5>${ic("alert","sm")}Problem</h5><textarea class="field" id="dIssue" rows="${Math.min(10,Math.max(3,Math.ceil((it.issue||"").length/80)))}" placeholder="What's wrong / what's needed…">${esc(it.issue)}</textarea></div>
       <div class="sec"><h5>${ic("spark","sm")}Suggested fix</h5><textarea class="field fixbox" id="dFix" rows="${Math.min(14,Math.max(3,Math.ceil((it.fix||"").length/80)+ (it.fix||"").split("\n").length-1))}" placeholder="What to do…">${esc(it.fix)}</textarea></div>
       ${src?`<div class="sec"><h5>${ic("link","sm")}Sources</h5><div class="srcs">${src}</div></div>`:""}
-      <div class="sec"><h5>${ic("msg","sm")}Notes & conversation (${(it.notes||[]).length})</h5>
-        ${(it.notes||[]).map(n=>`<div class="note" style="--oc:${ownerColor(n.who)}"><div class="h">${ownerDot(n.who)}<b>${esc(n.who)}</b> · ${ago(n.at)}</div><div class="x">${esc(n.text)}</div></div>`).join("")}
-        <textarea class="field" id="noteInput" rows="3" placeholder="Your thoughts, a decision, or a request for an agent…  (⌘↵ to post)">${esc(keepNote)}</textarea>
-        <div class="right"><button class="btn primary small" id="notePost">${ic("msg","sm")}Post note</button></div>
-      </div>
+      ${linked.length?`<div class="sec"><h5>${ic("flask","sm")}Experiments (${linked.length})</h5><div class="card list xside">${linked.map(x=>xrowHTML(x,true).replace("<span class=\"rmeta\">",`<span class="rmeta">${outChip(x.outcome)}`)).join("")}</div></div>`:""}
+      ${notesHTML(it,keepNote)}
       <div class="sec" style="margin-top:30px;display:flex;justify-content:space-between;align-items:center">
         <span class="muted" style="font-size:12px;display:flex;gap:5px;align-items:center">${ic("clock","sm")}Updated ${ago(it.updated)}</span>
         <button class="ghost danger" id="dDelete">${ic("trash","sm")}Delete item</button></div>
@@ -954,7 +1089,7 @@ const upd = (id,fields)=>api({op:"update",id,fields});
 document.addEventListener("click",e=>{
   if(e.target.closest("[data-newproj]")){openNewProject();return}
   if(view!=="project") return;
-  const t=e.target.closest("[data-check],[data-id],[data-tab],[data-status],[data-cat],[data-pri],[data-owner],[data-group],[data-open],[data-tdone],[data-tdel],[data-tpromote],[data-set-status],[data-set-pri],[data-set-owner]");
+  const t=e.target.closest("[data-check],[data-id],[data-tab],[data-status],[data-cat],[data-pri],[data-owner],[data-group],[data-open],[data-tdone],[data-tdel],[data-tpromote],[data-set-status],[data-set-pri],[data-set-owner],[data-set-outcome]");
   if(!t) return;
   const d=t.dataset;
   if(d.check){e.stopPropagation();const it=S.items.find(i=>i.id===d.check);upd(it.id,{status:it.status==="done"?"todo":"done"});toast(it.status==="done"?"Reopened":"Nice, done");return}
@@ -962,10 +1097,11 @@ document.addEventListener("click",e=>{
   if(d.setStatus){upd(openId,{status:d.setStatus});return}
   if(d.setPri){upd(openId,{priority:d.setPri});return}
   if(d.setOwner!==undefined){upd(openId,{owner:d.setOwner});return}
+  if(d.setOutcome!==undefined){upd(openId,{outcome:d.setOutcome});return}
   if(d.tdone){const th=S.thoughts.find(x=>x.id===d.tdone);api({op:"thought_update",id:th.id,fields:{done:!th.done}});return}
   if(d.tdel){if(confirm("Delete this thought?"))api({op:"thought_delete",id:d.tdel});return}
   if(d.tpromote){const th=S.thoughts.find(x=>x.id===d.tpromote);promote(th);return}
-  if(d.open){openDrawer(d.open);return}
+  if(d.open){e.stopPropagation();if(findRec(d.open))openDrawer(d.open);return}
   if(d.group){ui.closed[d.group]=!ui.closed[d.group];persist();renderItems();return}
   if(t.classList.contains("count")){ui.status=d.status;ui.pri="";ui.cat="";ui.owner="";persist();go(`#/${encodeURIComponent(cur)}/items`);return}
   if(t.classList.contains("bar")){ui.status="";ui.pri="";ui.cat="";ui.owner="";
@@ -993,13 +1129,14 @@ $("#drawer").addEventListener("change",e=>{
   if(e.target.id==="dCat") upd(openId,{category:e.target.value});
 });
 $("#drawer").addEventListener("focusout",e=>{
-  const it=S.items.find(i=>i.id===openId); if(!it) return;
-  const map={dTitle:"title",dIssue:"issue",dFix:"fix"}; const f=map[e.target.id];
-  if(f && e.target.value!==(it[f]||"")) upd(openId,{[f]:e.target.value.trim()});
+  const it=findRec(openId); if(!it) return;
+  const map={dTitle:"title",dIssue:"issue",dFix:"fix",dProblem:"problem",dSetup:"setup",dResults:"results",dWhere:"location",dRelated:"related"}; const f=map[e.target.id];
+  const curv=f==="related"?(it.related||[]).join(", "):(it[f]||"");
+  if(f && e.target.value.trim()!==curv) upd(openId,{[f]:f==="related"?e.target.value.toUpperCase():e.target.value.trim()});
   else if(pendingRefresh && !$("#drawer").contains(e.relatedTarget)){pendingRefresh=false;refresh()}
 });
 $("#drawer").addEventListener("keydown",e=>{
-  if(e.target.id==="dTitle" && e.key==="Enter"){e.preventDefault();e.target.blur()}
+  if((e.target.id==="dTitle"||e.target.id==="dWhere"||e.target.id==="dRelated") && e.key==="Enter"){e.preventDefault();e.target.blur()}
   if(e.target.id==="noteInput" && e.key==="Enter" && (e.metaKey||e.ctrlKey)) postNote();
 });
 function postNote(){const t=$("#noteInput");if(!t.value.trim())return;const v=t.value;t.value="";api({op:"note",id:openId,text:v}).then(()=>toast("Note posted","msg"))}

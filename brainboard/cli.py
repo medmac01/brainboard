@@ -19,6 +19,8 @@ Examples
   python3 brainboard/cli.py set E03 status=doing progress=30 owner=claude
   python3 brainboard/cli.py note E03 "Code uses /13 because ..."
   python3 brainboard/cli.py add "Fix Fig. 9 legend" --cat Writing --priority P3
+  python3 brainboard/cli.py exp-add "Rerun baseline with seed 7" --problem "Is the gain seed noise?" --where gpu-box:~/runs
+  python3 brainboard/cli.py set X01 status=running        # then: set X01 status=done outcome=worked results="…"
   python3 brainboard/cli.py thought "Ask whether to keep the baseline"
   python3 brainboard/cli.py project-add "Thesis" --icon 🎓 --cats "Chapters,Experiments,Admin"
 
@@ -153,7 +155,14 @@ PRI_ORDER = {"P1": 0, "P2": 1, "P3": 2}
 STATUS_ORDER = {"decide": 0, "doing": 1, "blocked": 2, "todo": 3, "done": 4, "skip": 5}
 
 
+OUTCOME_LABEL = {"worked": "worked", "inconclusive": "inconclusive", "didnt": "didn't work"}
+
+
 def line(it):
+    if it["id"].startswith("X") and "outcome" in it:
+        out = f" [{OUTCOME_LABEL[it['outcome']]}]" if it.get("outcome") else ""
+        own = f" @{it['owner']}" if it.get("owner") else ""
+        return f"{it['id']:<4} exp {it['status']:<8}  {it['title']}{out}{own}"
     own = f" @{it['owner']}" if it.get("owner") else ""
     return f"{it['id']:<4} {it['priority']} {it['status']:<7} {it.get('progress', 0):>3}%  {it['title']}{own}"
 
@@ -244,14 +253,14 @@ def cmd_list(a, data):
 
 
 def cmd_show(a, data):
-    it = core._find(data["items"], a.id)
+    it = core._locate(data, a.id)[0]
     if a.json:
         return print(json.dumps(it, indent=1, ensure_ascii=False))
     print(line(it))
-    for k in ("category", "kind", "location", "sources", "tex", "tags"):
+    for k in ("category", "kind", "location", "sources", "tex", "tags", "related", "started", "ended"):
         if it.get(k):
             print(f"  {k:<9} {', '.join(it[k]) if isinstance(it[k], list) else it[k]}")
-    for k in ("anchor", "issue", "fix"):
+    for k in ("anchor", "issue", "fix", "problem", "setup", "results"):
         if it.get(k):
             print(f"\n  {k.upper()}\n" + wrap(it[k]))
     for n in it.get("notes", []):
@@ -262,13 +271,15 @@ def cmd_set(a, data):
     fields = {}
     for kv in a.pairs:
         k, _, v = kv.partition("=")
-        if k in ("sources", "tex", "tags"):
+        if k == "where":
+            k = "location"
+        if k in ("sources", "tex", "tags", "related"):
             fields[k] = [x for x in v.split(",") if x]
         elif k == "pinned":
             fields[k] = v.lower() in ("1", "true", "yes")
         else:
             fields[k] = v
-    print(line(core._find(apply_op(a.slug, {"op": "update", "id": a.id, "fields": fields}, a.who)["items"], a.id)))
+    print(line(core._locate(apply_op(a.slug, {"op": "update", "id": a.id, "fields": fields}, a.who), a.id)[0]))
 
 
 def cmd_note(a, data):
@@ -305,7 +316,7 @@ def cmd_inbox(a, data):
     me, found = a.who, False
     frm = None if a.frm == "all" else set(a.frm.split(","))
     asks = lambda who: who != me and (frm is None or who in frm)
-    for it in data["items"]:
+    for it in data["items"] + data.get("experiments", []):
         notes = it.get("notes", [])
         mine = [k for k, n in enumerate(notes) if n["who"] == me]
         start = mine[-1] + 1 if mine else 0
@@ -327,12 +338,37 @@ def cmd_inbox(a, data):
         print(f"nothing waiting for {me}")
 
 
+def cmd_exp(a, data):
+    exps = data.get("experiments", [])
+    if a.status:
+        exps = [x for x in exps if x["status"] in a.status.split(",")]
+    if a.json:
+        return print(json.dumps(exps, indent=1, ensure_ascii=False))
+    order = {s: k for k, s in enumerate(["running", "planned", "done", "failed", "dropped"])}
+    for x in sorted(exps, key=lambda x: (order[x["status"]], x["id"])):
+        print(line(x))
+    if not exps:
+        print("no experiments" + (" with that status" if a.status else " yet; add one with exp-add"))
+
+
+def cmd_exp_add(a, data):
+    f = {"title": a.title, "status": a.status}
+    for k, v in (("problem", a.problem), ("setup", a.setup), ("location", a.where),
+                 ("related", a.related), ("owner", a.owner)):
+        if v:
+            f[k] = v
+    new = apply_op(a.slug, {"op": "add", "coll": "experiments", "fields": f}, a.who)
+    print(line(new["experiments"][-1]))
+
+
 def cmd_summary(a, data):
     s = core.stats(data)
     m = data["meta"]
     print(f"{m.get('icon', '')} {m['title']}  [{a.slug}]")
     print(f"Overall {s['percent']}% (priority-weighted)  ·  {s['total']} items  ·  {s['open_thoughts']} open thoughts")
     print("  " + "  ".join(f"{k}:{v}" for k, v in s["counts"].items()))
+    if any(s["experiments"].values()):
+        print("  experiments  " + "  ".join(f"{k}:{v}" for k, v in s["experiments"].items() if v))
     cats = {}
     for it in data["items"]:
         c = cats.setdefault(it["category"], [0, 0])
@@ -382,6 +418,13 @@ def main():
     p = sub.add_parser("add"); p.add_argument("title"); p.add_argument("--cat")
     p.add_argument("--priority", default="P2"); p.add_argument("--issue"); p.add_argument("--fix")
     p.add_argument("--location"); p.add_argument("--owner")
+    p = sub.add_parser("exp", help="list experiments (show/set/note take X ids too)")
+    p.add_argument("--status", help="planned,running,done,failed,dropped"); p.add_argument("--json", action="store_true")
+    p = sub.add_parser("exp-add", help="add an experiment")
+    p.add_argument("title"); p.add_argument("--status", default="planned", choices=core.EXP_STATUSES)
+    p.add_argument("--problem", help="question / why"); p.add_argument("--setup", help="what is run, config, command")
+    p.add_argument("--where", help="host, path, job id"); p.add_argument("--related", help="item ids, comma-separated")
+    p.add_argument("--owner")
     p = sub.add_parser("thought"); p.add_argument("text")
     p = sub.add_parser("thoughts"); p.add_argument("--all", action="store_true", help="include handled ones")
     a = ap.parse_args()
