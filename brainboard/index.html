@@ -345,7 +345,28 @@ dialog .df{padding:0 22px 18px;display:flex;justify-content:flex-end;gap:8px}
 .note .h{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--ink3);margin-bottom:4px}
 .note .h b{color:var(--ink2)}
 .note .h .owner{width:18px;height:18px;font-size:9.5px;box-shadow:none}
-.note .x{white-space:pre-wrap;word-wrap:break-word;font-size:13.5px}
+.note .x{word-wrap:break-word;font-size:13.5px}
+.md{line-height:1.55;overflow-wrap:anywhere}
+.md>:first-child{margin-top:0}.md>:last-child{margin-bottom:0}
+.md p,.md ul,.md ol,.md pre,.md blockquote,.md .tbl{margin:0 0 8px}
+.md h1,.md h2,.md h3,.md h4,.md h5,.md h6{margin:12px 0 6px;font-size:14px;line-height:1.3;color:var(--ink);text-transform:none;letter-spacing:0}
+.md h1{font-size:16px}.md h2{font-size:15px}
+.md ul,.md ol{padding-left:20px}.md li{margin:2px 0}.md li>ul,.md li>ol{margin:2px 0 0}
+.md li.task{list-style:none;margin-left:-18px}.md li.task input{margin:0 6px 0 0;vertical-align:-1px}
+.md code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.9em;background:color-mix(in srgb,var(--ink) 7%,transparent);padding:1px 4px;border-radius:4px}
+.md pre{background:color-mix(in srgb,var(--ink) 6%,transparent);border:1px solid var(--line);border-radius:7px;padding:8px 10px;overflow-x:auto}
+.md pre code{background:none;padding:0;font-size:12px;white-space:pre}
+.md blockquote{border-left:3px solid var(--line2);padding:0 0 0 10px;color:var(--ink2)}
+.md hr{border:0;border-top:1px solid var(--line);margin:10px 0}
+.md a{color:var(--accent);text-decoration:underline;text-underline-offset:2px}
+.md .tbl{overflow-x:auto}
+.md table{border-collapse:collapse;font-size:12.5px;font-variant-numeric:tabular-nums}
+.md th,.md td{border:1px solid var(--line);padding:4px 8px;text-align:left;vertical-align:top}
+.md th{background:color-mix(in srgb,var(--ink) 5%,transparent);font-weight:600}
+.mdview{resize:none;cursor:text;min-height:38px;font-size:13.5px}
+.mdview.mono{font-family:inherit}
+.mdview:hover{border-color:var(--line2)}
+.mdview.hidden,.field.hidden{display:none}
 .danger{color:var(--p1)}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(30px);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:10px;font-size:13.5px;opacity:0;transition:.25s;z-index:60;pointer-events:none;display:flex;gap:8px;align-items:center}
 .toast.on{opacity:1;transform:translateX(-50%)}
@@ -634,6 +655,52 @@ function load(k,d){try{return Object.assign({},d,JSON.parse(localStorage.getItem
 function persist(){try{localStorage.setItem("bb.ui",JSON.stringify(ui))}catch(e){}}
 const $ = s => document.querySelector(s);
 const esc = s => String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+/* markdown: escape first, then format; enough for notes and results (lists, tables, code, links) */
+function mdInline(t){
+  const keep=[]; const stash=h=>`\u0000${keep.push(h)-1}\u0000`;
+  t=esc(t).replace(/`([^`]+)`/g,(_,c)=>stash(`<code>${c}</code>`))
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,(_,l,u)=>stash(`<a href="${u}" target="_blank" rel="noopener">${l}</a>`))
+    .replace(/(^|[\s(])(https?:\/\/[^\s<)]+)/g,(_,b,u)=>b+stash(`<a href="${u}" target="_blank" rel="noopener">${u}</a>`))
+    .replace(/\*\*(?=\S)(.+?)\*\*/g,"<b>$1</b>").replace(/(^|[^\w])__(?=\S)(.+?)__(?!\w)/g,"$1<b>$2</b>")
+    .replace(/(^|[^\w*])\*(?=[^\s*])([^*]*?[^\s*]|[^\s*])\*(?![\w*])/g,"$1<i>$2</i>")
+    .replace(/(^|[^\w])_(?=[^\s_])([^_]*?[^\s_]|[^\s_])_(?!\w)/g,"$1<i>$2</i>")
+    .replace(/~~(?=\S)(.+?)~~/g,"<s>$1</s>");
+  return t.replace(/\u0000(\d+)\u0000/g,(_,i)=>keep[i]);
+}
+function md(src){
+  const L=String(src??"").replace(/\r\n?/g,"\n").split("\n"), out=[]; let i=0, para=[];
+  const flush=()=>{if(para.length){out.push(`<p>${para.map(mdInline).join("<br>")}</p>`);para=[]}};
+  const LI=/^(\s*)([-*+]|\d+[.)])\s+(.*)$/, SEP=/^\s*\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)*\|?\s*$/;
+  const cells=l=>l.trim().replace(/^\||\|$/g,"").split("|").map(c=>c.trim());
+  while(i<L.length){
+    const l=L[i]; let m;
+    if(m=l.match(/^\s*(```|~~~)/)){flush();const f=m[1],b=[];i++;while(i<L.length&&!L[i].trim().startsWith(f))b.push(L[i++]);i++;
+      out.push(`<pre><code>${esc(b.join("\n"))}</code></pre>`);continue}
+    if(!l.trim()){flush();i++;continue}
+    if(m=l.match(/^(#{1,6})\s+(.*?)\s*#*$/)){flush();out.push(`<h${m[1].length}>${mdInline(m[2])}</h${m[1].length}>`);i++;continue}
+    if(/^\s*([-*_])(\s*\1){2,}\s*$/.test(l)){flush();out.push("<hr>");i++;continue}
+    if(l.includes("|")&&i+1<L.length&&SEP.test(L[i+1])){flush();
+      const al=cells(L[i+1]).map(c=>c.endsWith(":")?(c.startsWith(":")?"center":"right"):""), td=(c,k,tag)=>`<${tag}${al[k]?` style="text-align:${al[k]}"`:""}>${mdInline(c)}</${tag}>`;
+      let h=`<div class="tbl"><table><thead><tr>${cells(l).map((c,k)=>td(c,k,"th")).join("")}</tr></thead><tbody>`; i+=2;
+      while(i<L.length&&L[i].includes("|")&&L[i].trim()){h+=`<tr>${cells(L[i]).map((c,k)=>td(c,k,"td")).join("")}</tr>`;i++}
+      out.push(h+"</tbody></table></div>");continue}
+    if(/^\s*>/.test(l)){flush();const b=[];while(i<L.length&&/^\s*>/.test(L[i]))b.push(L[i++].replace(/^\s*>\s?/,""));out.push(`<blockquote>${md(b.join("\n"))}</blockquote>`);continue}
+    if(LI.test(l)){flush();const st=[];let h="";
+      while(i<L.length&&(m=L[i].match(LI))){
+        const ind=m[1].replace(/\t/g,"    ").length, tag=/\d/.test(m[2])?"ol":"ul";
+        while(st.length&&(ind<st[st.length-1].ind||ind===st[st.length-1].ind&&tag!==st[st.length-1].tag)){h+=`</li></${st.pop().tag}>`}
+        if(!st.length||ind>st[st.length-1].ind){st.push({ind,tag});h+=`<${tag}${tag==="ol"&&parseInt(m[2])!==1?` start="${parseInt(m[2])}"`:""}>`}else h+="</li>";
+        let body=m[3]; i++;
+        while(i<L.length&&L[i].trim()&&!LI.test(L[i])&&/^\s+/.test(L[i]))body+="\n"+L[i++].trim();
+        const tk=body.match(/^\[( |x|X)\]\s+(.*)$/s);
+        h+=tk?`<li class="task"><input type="checkbox" disabled${tk[1]===" "?"":" checked"}>${tk[2].split("\n").map(mdInline).join("<br>")}`:`<li>${body.split("\n").map(mdInline).join("<br>")}`;
+      }
+      while(st.length)h+=`</li></${st.pop().tag}>`;
+      out.push(h);continue}
+    para.push(l);i++;
+  }
+  flush(); return out.join("");
+}
 const ic = (n,cls="") => `<svg class="ic ${cls}"><use href="#i-${n}"/></svg>`;
 const ago = iso => { if(!iso) return ""; const s=(Date.now()-new Date(iso))/1000;
   if(s<60) return "just now"; if(s<3600) return Math.floor(s/60)+" min ago"; if(s<86400) return Math.floor(s/3600)+" h ago";
@@ -880,7 +947,7 @@ function xTime(x){
 const outChip = o => o&&OUTCOME[o]?`<span class="chip out" style="color:${OUTCOME[o].c}">${ic(OUTCOME[o].i)}${OUTCOME[o].label}</span>`:"";
 const firstLine = t => (t||"").split("\n").find(l=>l.trim())||"";
 function xrowHTML(x,compact){
-  const sub=firstLine(x.results)||firstLine(x.problem)||firstLine(x.setup);
+  const sub=(firstLine(x.results)||firstLine(x.problem)||firstLine(x.setup)).replace(/^\s*(#+|>|[-*+]|\d+[.)])\s+/,"").replace(/\*\*|__|`|~~/g,"");
   return `<div class="xrow" data-id="${x.id}">
     <span class="xst" style="color:${XST[x.status].c}" title="${XST[x.status].label}">${ic(XST[x.status].i)}</span>
     <span class="rid">${x.id}</span>
@@ -1031,11 +1098,14 @@ function closeDrawer(silent){openId=null;$("#drawer").classList.remove("on");$("
   if(pendingRefresh){pendingRefresh=false;refresh()}}
 function notesHTML(it,keepNote){
   return `<div class="sec"><h5>${ic("msg","sm")}Notes & conversation (${(it.notes||[]).length})</h5>
-        ${(it.notes||[]).map(n=>`<div class="note" style="--oc:${ownerColor(n.who)}"><div class="h">${ownerDot(n.who)}<b>${esc(n.who)}</b> · ${ago(n.at)}</div><div class="x">${esc(n.text)}</div></div>`).join("")}
+        ${(it.notes||[]).map(n=>`<div class="note" style="--oc:${ownerColor(n.who)}"><div class="h">${ownerDot(n.who)}<b>${esc(n.who)}</b> · ${ago(n.at)}</div><div class="x md">${md(n.text)}</div></div>`).join("")}
         <textarea class="field" id="noteInput" rows="3" placeholder="Your thoughts, a decision, or a request for an agent…  (⌘↵ to post)">${esc(keepNote)}</textarea>
         <div class="right">${micBtn("noteInput")}<button class="btn primary small" id="notePost">${ic("msg","sm")}Post note</button></div>
       </div>`;
 }
+const mdView = (id,t,cls) => t?`<div class="${cls} md mdview" data-mdedit="${id}" title="Click to edit">${md(t)}</div>`:"";
+function mdEdit(id){const ta=document.getElementById(id), v=$(`[data-mdedit="${id}"]`); if(!ta)return;
+  v?.classList.add("hidden"); ta.classList.remove("hidden"); ta.focus(); ta.setSelectionRange(ta.value.length,ta.value.length)}
 const rows = (t,min,max,per=80) => Math.min(max,Math.max(min,Math.ceil((t||"").length/per)+(t||"").split("\n").length-1));
 function renderExpDrawer(x,keepNote){
   const known=new Set(S.items.map(i=>i.id));
@@ -1055,9 +1125,9 @@ function renderExpDrawer(x,keepNote){
         <label>Related</label><div><input class="inp mono" id="dRelated" value="${esc((x.related||[]).join(", "))}" placeholder="item ids, e.g. E09, N03">
           ${(x.related||[]).length?`<div class="srcs" style="margin-top:6px">${x.related.map(r=>known.has(r)?`<span class="chip rel" data-open="${esc(r)}" title="${esc(S.items.find(i=>i.id===r).title)}">${esc(r)}</span>`:`<span class="chip tag">${esc(r)}?</span>`).join("")}</div>`:""}</div>
       </div>
-      <div class="sec"><h5>${ic("alert","sm")}Problem / question${micBtn("dProblem")}</h5><textarea class="field" id="dProblem" rows="${rows(x.problem,2,10)}" placeholder="Why run this? What do you expect?">${esc(x.problem)}</textarea></div>
-      <div class="sec"><h5>${ic("server","sm")}Setup${micBtn("dSetup")}</h5><textarea class="field mono" id="dSetup" rows="${rows(x.setup,2,12,90)}" placeholder="What changed vs. the main run: config, command, model, seeds…">${esc(x.setup)}</textarea></div>
-      <div class="sec"><h5>${ic("chart","sm")}Results${micBtn("dResults")}</h5><textarea class="field mono resbox" id="dResults" rows="${rows(x.results,4,20,90)}" placeholder="Numbers, tables, what came out and what it means…">${esc(x.results)}</textarea></div>
+      <div class="sec"><h5>${ic("alert","sm")}Problem / question${micBtn("dProblem")}</h5>${mdView("dProblem",x.problem,"field")}<textarea class="field${x.problem?" hidden":""}" id="dProblem" rows="${rows(x.problem,2,10)}" placeholder="Why run this? What do you expect?">${esc(x.problem)}</textarea></div>
+      <div class="sec"><h5>${ic("server","sm")}Setup${micBtn("dSetup")}</h5>${mdView("dSetup",x.setup,"field mono")}<textarea class="field mono${x.setup?" hidden":""}" id="dSetup" rows="${rows(x.setup,2,12,90)}" placeholder="What changed vs. the main run: config, command, model, seeds…">${esc(x.setup)}</textarea></div>
+      <div class="sec"><h5>${ic("chart","sm")}Results${micBtn("dResults")}</h5>${mdView("dResults",x.results,"field mono resbox")}<textarea class="field mono resbox${x.results?" hidden":""}" id="dResults" rows="${rows(x.results,4,20,90)}" placeholder="Numbers, tables, what came out and what it means…">${esc(x.results)}</textarea></div>
       ${(x.tags||[]).length?`<div class="sec"><h5>${ic("link","sm")}Tags</h5><div class="srcs">${x.tags.map(t=>`<span class="chip tag">#${esc(t)}</span>`).join("")}</div></div>`:""}
       ${notesHTML(x,keepNote)}
       <div class="sec" style="margin-top:30px;display:flex;justify-content:space-between;align-items:center">
@@ -1203,6 +1273,7 @@ async function promote(th){
 $("#scrim").onclick=()=>closeDrawer();
 $("#drawer").addEventListener("click",e=>{
   if(e.target.closest("#dClose")) closeDrawer();
+  const mv=e.target.closest("[data-mdedit]"); if(mv && !e.target.closest("a") && !String(getSelection())) mdEdit(mv.dataset.mdedit);
   if(e.target.closest("#notePost")) postNote();
   if(e.target.closest("#dDelete") && confirm("Delete "+openId+"? This can't be undone.")){api({op:"delete",id:openId});closeDrawer()}
 });
@@ -1218,6 +1289,8 @@ $("#drawer").addEventListener("focusout",e=>{
   const it=findRec(openId); if(!it) return;
   const f=FIELD_MAP[e.target.id];
   const curv=f==="related"?(it.related||[]).join(", "):(it[f]||"");
+  const mv=$(`[data-mdedit="${e.target.id}"]`);
+  if(mv && e.target.value.trim()===curv){e.target.classList.add("hidden");mv.classList.remove("hidden")}
   if(f && e.target.value.trim()!==curv) upd(openId,{[f]:f==="related"?e.target.value.toUpperCase():e.target.value.trim()});
   else if(pendingRefresh && !$("#drawer").contains(e.relatedTarget)){pendingRefresh=false;refresh()}
 });
