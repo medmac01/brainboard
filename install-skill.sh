@@ -7,7 +7,7 @@
 #   ./install-skill.sh --dir PATH [--who NAME]   → PATH/brainboard
 #   ./install-skill.sh --snippet [--who NAME]    → print an AGENTS.md block (harnesses without skills)
 #
-# The skill gets its own copy of the CLI (scripts/cli.py + core.py) and a `bb` wrapper that signs
+# The skill gets its own copy of the CLI (scripts/cli.py + core.py + library.py) and a `bb` wrapper that signs
 # changes as the harness name (claude, codex, …). Re-run after pulling to update.
 # Connect it to a server once with:  <skill>/scripts/bb config --url http://host:2001
 set -euo pipefail
@@ -47,7 +47,7 @@ fi
 
 dest="$dir/brainboard"
 mkdir -p "$dest/scripts"
-cp brainboard/cli.py brainboard/core.py "$dest/scripts/"
+cp brainboard/cli.py brainboard/core.py brainboard/library.py "$dest/scripts/"
 cat > "$dest/scripts/bb" <<EOF
 #!/bin/sh
 # brainboard CLI for this harness; signs as "$who" unless BRAINBOARD_WHO is set.

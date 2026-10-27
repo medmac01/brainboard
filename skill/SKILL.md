@@ -52,6 +52,33 @@ Experiment statuses: `planned running done failed dropped`. Outcome: `worked inc
 Log an experiment when you start a run, and fill in `results` (with the real numbers) when it finishes.
 Link it to the items it informs with `related`.
 
+## Paper library (shared by all projects, no `-p` needed)
+Papers (`P012`) live in one library; each can be tagged to projects. `show`, `set` and `note` take P ids.
+```bash
+bb papers                                    # all papers; bb -p S papers = the ones tagged to project S
+bb papers -q provenance --reading to-read    # filter titles/authors/tags/venue, reading status
+bb show P012                                 # details, abstract, your summary, card, notes
+bb paper-text P012 --pages 1-3               # extracted text with "--- page N ---" markers; cite pages
+bb grep '"query graph" LLM' -n 20            # full-text search (all terms per page; quotes keep phrases)
+bb paper-add arxiv:2401.12345 10.1145/… https://arxiv.org/abs/…   # metadata + PDF fetched
+bb paper-add --pdf paper.pdf --projects S --tags provenance       # or --bib refs.bib
+bb paper-set P012 reading=read projects=S tags=a,b
+bb paper-card P012 --file card.json          # write the structured digest (see below)
+bb note P012 "…"                             # discussion on a paper
+bb -p S bib > refs.bib                       # BibTeX for a project's papers
+```
+Reading status (`to-read skimmed read key`) is the user's call; don't change it unless asked.
+
+**Card**: after reading a paper (read the text, not just the abstract), write a card JSON with
+`tldr, problem, approach, contributions, evaluation, limitations, gaps, questions` (Markdown strings) and
+`datasets, metrics` (lists). It may also carry `short` (the system's name) and `tags`. Be specific: real
+numbers in `evaluation`; in `limitations` say what the evaluation does *not* show (leakage, tiny test sets,
+re-implemented baselines); in `gaps` and `questions` connect the paper to the user's own work.
+
+**Brainstorming with the library**: read the cards of the relevant papers first (`bb -p S papers`, then
+`show`), use `grep` + `paper-text --pages` to check claims against the text, and cite as `P012 p.7`.
+Propose ideas with the papers they build on and the open questions, and leave the choice to the user.
+
 ## Conventions
 - Statuses: `todo doing decide blocked done skip`. Priorities: `P1 P2 P3`.
 - When something needs the user's choice, set `status=decide` and lay out the options. Don't decide for them.
