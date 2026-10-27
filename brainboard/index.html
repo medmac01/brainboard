@@ -253,6 +253,42 @@ h2{font-size:12px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink3
 .xside .xrow{padding:8px 10px}
 @media (max-width:640px){.xrow{grid-template-columns:auto minmax(0,1fr) auto}.xrow .rid,.xrow .chip.rel{display:none}}
 
+.prow{display:grid;grid-template-columns:auto auto minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 12px;border-radius:9px;cursor:pointer}
+.prow:hover{background:var(--panel2)}
+.prow+.prow{border-top:1px solid var(--line)}
+.prow:hover+.prow,.prow:hover{border-color:transparent}
+.prow .pmain{min-width:0}
+.prow .ptitle{font-weight:550;line-height:1.35}
+.prow .ptitle b{color:var(--accent);font-weight:700;margin-right:6px}
+.prow .psub{color:var(--ink3);font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px}
+.prow .ptldr{color:var(--ink2);font-size:12.5px;margin-top:3px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.prow .rmeta{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end;max-width:260px}
+.rd{display:flex}.rd .ic{width:18px;height:18px}
+.ladd{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:12px 14px;margin-bottom:14px}
+.ladd .inp{flex:1 1 260px;min-width:200px}
+.ladd .hint{color:var(--ink3);font-size:12.5px;width:100%}
+.ldrop{display:none;position:fixed;inset:12px;border:2px dashed var(--accent);border-radius:16px;background:color-mix(in srgb,var(--accent) 10%,transparent);z-index:45;align-items:center;justify-content:center;font-size:18px;font-weight:650;color:var(--accent);pointer-events:none}
+.ldrop.on{display:flex}
+.ghit{display:grid;grid-template-columns:auto auto minmax(0,1fr);gap:10px;padding:9px 12px;align-items:baseline;cursor:pointer;border-radius:9px}
+.ghit:hover{background:var(--panel2)}
+.ghit+.ghit{border-top:1px solid var(--line)}
+.ghit .snip{color:var(--ink2);font-size:12.5px;line-height:1.45}
+.ghit mark{background:color-mix(in srgb,var(--p2) 35%,transparent);color:inherit;border-radius:3px;padding:0 1px}
+.ghead2{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--line);font-size:13px;color:var(--ink2)}
+.pacts{display:flex;gap:6px;flex-wrap:wrap;margin:2px 0 16px}
+.pacts .btn{text-decoration:none;color:var(--ink)}
+.cardsec{margin-top:14px}
+.cardsec h6{margin:0 0 4px;font-size:12px;color:var(--ink3);font-weight:650;letter-spacing:.02em}
+.pcardbox{border:1px solid color-mix(in srgb,var(--accent) 25%,var(--line));background:color-mix(in srgb,var(--accent) 4%,var(--panel));border-radius:12px;padding:12px 14px}
+.pcardbox .tldr{font-weight:550;line-height:1.5}
+.abstract{color:var(--ink2);font-size:13.5px;line-height:1.55}
+details.abs summary{cursor:pointer;color:var(--ink3);font-size:12.5px}
+.homelib{display:flex;gap:16px;align-items:center;padding:16px 18px;color:var(--ink)}
+.homelib .ic.xl{width:30px;height:30px;color:var(--accent)}
+.homelib .grow{flex:1;min-width:0}
+.homelib .recent{color:var(--ink3);font-size:12.5px;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media (max-width:640px){.prow{grid-template-columns:auto minmax(0,1fr)}.prow .rid,.prow .rmeta{display:none}}
+
 /* voice input */
 .mic{display:none;align-items:center;gap:5px;border:1px solid var(--line);background:var(--panel);color:var(--ink2);border-radius:9px;height:28px;padding:0 8px;font-size:12px;font-variant-numeric:tabular-nums;text-transform:none;letter-spacing:0;font-weight:600}
 body.voice .mic{display:inline-flex}
@@ -445,6 +481,9 @@ body.in-project .proj-only{display:flex}
   <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v4M8 21h8"/></symbol>
   <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor"/></symbol>
   <symbol id="i-loader" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-6.2-8.6"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 19.5V5a2 2 0 0 1 2-2h13v15H6.5A2.5 2.5 0 0 0 4 20.5 2.5 2.5 0 0 0 6.5 23H19v-5"/><path d="M8 7h7M8 11h5"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 15V3M7 8l5-5 5 5"/><path d="M3 15v4a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></symbol>
   <symbol id="i-logo" viewBox="0 0 24 24"><rect x="4" y="5" width="4" height="14" rx="1.6" fill="#fff" stroke="none"/><rect x="10" y="5" width="4" height="9" rx="1.6" fill="#fff" stroke="none" opacity=".82"/><rect x="16" y="5" width="4" height="5" rx="1.6" fill="#fff" stroke="none" opacity=".62"/></symbol>
 </svg>
 
@@ -461,6 +500,7 @@ body.in-project .proj-only{display:flex}
       <div class="counts proj-only" id="counts"></div>
       <div class="tools">
         <span class="live" id="live"><span class="dot"></span><span id="liveTxt">live</span></span>
+        <a class="iconbtn" href="#/library" id="libBtn" title="Paper library"><svg class="ic"><use href="#i-book"/></svg></a>
         <a class="iconbtn" href="#/help" title="How this works"><svg class="ic"><use href="#i-help"/></svg></a>
         <button class="iconbtn" id="themeBtn" title="Toggle theme"><svg class="ic"><use id="themeIc" href="#i-moon"/></svg></button>
       </div>
@@ -470,6 +510,7 @@ body.in-project .proj-only{display:flex}
       <button data-tab="items"><svg class="ic"><use href="#i-list"/></svg>Items <span class="n" id="nItems"></span></button>
       <button data-tab="board"><svg class="ic"><use href="#i-kanban"/></svg>Board</button>
       <button data-tab="experiments"><svg class="ic"><use href="#i-flask"/></svg>Experiments <span class="n" id="nExps"></span></button>
+      <button data-tab="papers"><svg class="ic"><use href="#i-book"/></svg>Papers <span class="n" id="nPapers"></span></button>
       <button data-tab="thoughts"><svg class="ic"><use href="#i-bulb"/></svg>Thoughts <span class="n" id="nThoughts"></span></button>
       <button data-tab="activity"><svg class="ic"><use href="#i-pulse"/></svg>Activity</button>
       <button data-tab="settings"><svg class="ic"><use href="#i-sliders"/></svg>Settings</button>
@@ -489,6 +530,23 @@ body.in-project .proj-only{display:flex}
       <div class="right"><label class="muted" style="font-size:12.5px;display:flex;gap:6px;align-items:center"><input type="checkbox" id="showArchived"> show archived</label>
       <button class="btn small primary" data-newproj><svg class="ic sm"><use href="#i-plus"/></svg>New project</button></div></div>
     <div class="pgrid" id="pgrid"></div>
+    <div id="homeLib"></div>
+  </section>
+
+  <!-- LIBRARY -->
+  <section class="view" id="view-library">
+    <div class="card phero" id="lhero"></div>
+    <div id="laddL"></div>
+    <div class="filters">
+      <div class="searchbox"><svg class="ic"><use href="#i-search"/></svg><input class="search" id="lq" placeholder="Filter papers  (Enter: full text)"></div>
+      <button class="btn small" id="lGrepBtn" title="Search inside the papers' full text"><svg class="ic sm"><use href="#i-file"/></svg>Full text</button>
+      <div class="seg" id="fRead"><button data-v="">All</button><button data-v="to-read">To read</button><button data-v="skimmed">Skimmed</button><button data-v="read">Read</button><button data-v="key">Key</button></div>
+      <select class="sel" id="fLProj"></select>
+      <select class="sel" id="fLTag"></select>
+      <select class="sel" id="fLSort"><option value="added">Recently added</option><option value="year">Newest first</option><option value="title">Title</option></select>
+    </div>
+    <div id="lgrep"></div>
+    <div class="card list" id="llist"></div>
   </section>
 
   <!-- HELP -->
@@ -498,6 +556,7 @@ body.in-project .proj-only{display:flex}
       <p>brainboard holds your <b>projects</b>. Each project has its own items, decisions, thoughts and activity, stored as one JSON file on the server. This page, Claude, Codex and any other agent read and write the same files, so the board is the shared interface between you and them. Changes from anyone show up here within ~2 seconds.</p>
       <p><b>Statuses.</b> <span class="chip st"><svg class="ic"><use href="#i-todo"/></svg>To do</span> → <span class="chip st"><svg class="ic"><use href="#i-doing"/></svg>Doing</span> → <span class="chip st"><svg class="ic"><use href="#i-done"/></svg>Done</span>. Use <span class="chip st"><svg class="ic"><use href="#i-decide"/></svg>Needs decision</span> when something is waiting on <i>you</i> to choose, <span class="chip st"><svg class="ic"><use href="#i-blocked"/></svg>Blocked</span> when it's waiting on something else, and <span class="chip st"><svg class="ic"><use href="#i-skip"/></svg>Won't fix</span> to drop it (dropped items don't count against your %).</p>
       <p><b>Experiments.</b> Each project also has an Experiments tab for side runs (reruns, ablations, quick adjustments): the question, the setup, where it runs, the results and an outcome (<span class="chip out" style="color:var(--done)">Worked</span> <span class="chip out" style="color:var(--p2)">Inconclusive</span> <span class="chip out" style="color:var(--p1)">Didn't work</span>). Link an experiment to the items it informs, and it shows up on those items too. Experiments don't count toward the % ring.</p>
+      <p><b>Library.</b> The <svg class="ic sm"><use href="#i-book"/></svg> button opens the paper library, shared by all projects. Add papers by arXiv id, DOI or link, or drop PDFs on the page; details are looked up and the text is extracted so agents can read and search it (<code>bb paper-text</code>, <code>bb grep</code>). Each paper keeps your reading status, your own summary, a <i>card</i> written by an agent after reading it, and a notes thread. Tag a paper to projects and it shows in that project's Papers tab.</p>
       <p class="voice-only"><b>Voice input.</b> The <svg class="ic sm"><use href="#i-mic"/></svg> button next to a text box records you, and the transcript is added to that box. Click it again to stop, or press <kbd>Esc</kbd> to discard. Live recording needs the HTTPS address. Over plain HTTP the button lets you pick an audio file instead.</p>
       <p><b>The % ring</b> is priority-weighted: a P1 item counts 3×, P2 2×, P3 1×. Partial progress counts too, so move the slider as you go.</p>
       <p><b>Talking to agents.</b> Leave a note on an item (“Claude: draft the fix for this”) or drop a thought, then tell the agent “check the board”. It answers in the same note thread.</p>
@@ -586,6 +645,14 @@ echo SLUG > .brainboard           # pin a repo to a project</pre>
       <div id="xgroups"></div>
     </section>
 
+    <section class="tab" id="tab-papers">
+      <div id="laddP"></div>
+      <div class="filters"><div class="searchbox"><svg class="ic"><use href="#i-search"/></svg><input class="search" id="pq" placeholder="Filter this project's papers…"></div>
+        <a class="btn small" id="pLibLink" href="#/library"><svg class="ic sm"><use href="#i-book"/></svg>Whole library</a>
+        <a class="btn small" id="pBib" target="_blank"><svg class="ic sm"><use href="#i-copy"/></svg>BibTeX</a></div>
+      <div class="card list" id="plist"></div>
+    </section>
+
     <section class="tab" id="tab-thoughts">
       <div class="thoughts">
         <div class="card quick" style="margin-bottom:18px">
@@ -605,6 +672,8 @@ echo SLUG > .brainboard           # pin a repo to a project</pre>
 <div class="scrim" id="scrim"></div>
 <aside class="drawer" id="drawer" aria-hidden="true"></aside>
 <div class="toast" id="toast"></div>
+<div class="ldrop" id="ldrop"><div>Drop PDFs or a .bib file to add them</div></div>
+<input type="file" id="libFile" accept=".pdf,.bib,application/pdf" multiple hidden>
 <input type="file" id="voiceFile" accept="audio/*" capture hidden>
 
 <dialog id="newDlg">
@@ -644,12 +713,13 @@ const TEMPLATES = {
   software:{label:"Software",cats:["Inbox","Features","Bugs","Infra","Docs"]},
   personal:{label:"Personal",cats:["Inbox","Health","Errands","Learning","Admin"]},
 };
-const TABS = ["focus","items","board","experiments","thoughts","activity","settings"];
+const TABS = ["focus","items","board","experiments","papers","thoughts","activity","settings"];
 const ME = "me";
 let P = [], pVersion = null;          // project list (home)
 let cur = null, S = null, version = null, openId = null, pendingRefresh = false, view = "home";
-const ui = load("ui",{tab:{},pri:"",status:"open",owner:"",cat:"",closed:{},archived:false,xst:""});
+const ui = load("ui",{tab:{},pri:"",status:"open",owner:"",cat:"",closed:{},archived:false,xst:"",lib:{read:"",proj:"",tag:"",sort:"added"}});
 if(typeof ui.tab!=="object") ui.tab={};
+if(typeof ui.lib!=="object"||!ui.lib) ui.lib={read:"",proj:"",tag:"",sort:"added"};
 
 function load(k,d){try{return Object.assign({},d,JSON.parse(localStorage.getItem("bb."+k)||"{}"))}catch(e){return d}}
 function persist(){try{localStorage.setItem("bb.ui",JSON.stringify(ui))}catch(e){}}
@@ -733,8 +803,9 @@ async function api(op){
 async function loadProjects(){ const j=await http("/api/projects"); P=j.projects; pVersion=j.version; }
 async function refresh(){
   try{
-    if(view==="project"){ S=await http(`/api/p/${cur}/state`); version=S.version; }
-    else { await loadProjects(); }
+    if(view==="project"){ S=await http(`/api/p/${cur}/state`); version=S.version; if(LB && curTab()==="papers") await loadLib(); }
+    else if(view==="library"){ await Promise.all([loadLib(), P.length?null:loadProjects()]); }
+    else { await loadProjects(); if(view==="home") await loadLib().catch(()=>{}); }
     setLive(true); renderAll();
   }catch(e){
     if(/no such project/.test(e.message)){ toast("That project no longer exists","alert"); location.hash="#/"; return }
@@ -743,9 +814,9 @@ async function refresh(){
 }
 async function poll(){
   try{
-    const url=view==="project"?`/api/p/${cur}/version`:"/api/version";
+    const url=view==="project"?`/api/p/${cur}/version`:view==="library"?"/api/library/version":"/api/version";
     const j=await http(url); setLive(true);
-    if(j.version!==(view==="project"?version:pVersion)){
+    if(j.version!==(view==="project"?version:view==="library"?lbVersion:pVersion)){
       const a=document.activeElement;
       if(a && (a.tagName==="TEXTAREA"||a.tagName==="INPUT") && ($("#drawer").contains(a)||$("#tab-settings").contains(a))) pendingRefresh=true;
       else await refresh();
@@ -759,6 +830,7 @@ function parseHash(){
   const parts=location.hash.replace(/^#\/?/,"").split("/").filter(Boolean).map(decodeURIComponent);
   if(!parts.length) return {view:"home"};
   if(parts[0]==="help") return {view:"help"};
+  if(parts[0]==="library") return {view:"library",item:/^P\d+$/.test(parts[1]||"")?parts[1]:null};
   const isItem=s=>/^[A-Z]+\d+$/.test(s||"");
   const tab=TABS.includes(parts[1])?parts[1]:null;
   return {view:"project",slug:parts[0],tab,item:isItem(parts[1])?parts[1]:isItem(parts[2])?parts[2]:null};
@@ -770,7 +842,9 @@ async function route(){
     if(openId) closeDrawer(true);
     view=r.view; cur=null; S=null; document.documentElement.style.removeProperty("--pc");
     document.body.classList.remove("in-project");
-    showView(r.view); await refresh(); window.scrollTo({top:0}); return;
+    showView(r.view); await refresh(); window.scrollTo({top:0});
+    if(r.view==="library" && r.item && findPaper(r.item)) openPaper(r.item,false);
+    return;
   }
   const switching=cur!==r.slug;
   view="project";
@@ -793,6 +867,7 @@ function itemHash(id){ return `#/${encodeURIComponent(cur)}/${curTab()}${id?"/"+
 /* ---------- render ---------- */
 function renderAll(){
   if(view==="home") renderHome();
+  else if(view==="library"){ renderLibrary(); if(openId&&openKind==="paper") renderPaperDrawer(); }
   else if(view==="help") { $("#helpUrl").textContent=location.origin; document.title="How this works · brainboard"; }
   else if(S) render();
 }
@@ -821,6 +896,11 @@ function renderHome(){
       <div class="track"><i style="width:${s.percent}%"></i></div>
       <div class="foot">${ic("clock","sm")}updated ${ago(p.updated)} by ${esc(p.updated_by||"?")}<span style="margin-left:auto">${c.done}/${s.total} done</span></div></a>`}).join("")
     +`<button class="card pcard new" data-newproj>${ic("plus","xl")}New project</button>`;
+  const lp=papers();
+  $("#homeLib").innerHTML=`<div class="sechead"><h2>${ic("book","sm")}Library</h2></div>
+    <a class="card homelib" href="#/library">${ic("book","xl")}<div class="grow"><b>${lp.length} paper${lp.length===1?"":"s"}</b>
+      <span class="muted"> · ${lp.filter(p=>p.reading==="to-read").length} to read · ${lp.filter(p=>p.card&&p.card.tldr).length} with cards</span>
+      <div class="recent">${lp.length?"Latest: "+lp.slice().sort((a,b)=>(b.added||"").localeCompare(a.added||"")).slice(0,3).map(p=>esc(p.short||p.title)).join(" · "):"Add the papers you read; agents can then read and search them with you."}</div></div>${ic("right","sm muted")}</a>`;
 }
 
 function render(){
@@ -845,8 +925,11 @@ function render(){
   $("#nExps").textContent=runX?runX+" running":""; $("#nExps").style.display=runX?"":"none";
   const t=curTab();
   if(t==="focus") renderFocus(); if(t==="items") renderItems(); if(t==="board") renderBoard();
-  if(t==="experiments") renderExps(); if(t==="thoughts") renderThoughts(); if(t==="activity") renderActivity(); if(t==="settings") renderSettings();
-  if(openId) renderDrawer(openId);
+  if(t==="experiments") renderExps(); if(t==="papers") renderProjPapers(); if(t==="thoughts") renderThoughts(); if(t==="activity") renderActivity(); if(t==="settings") renderSettings();
+  if(openId) openKind==="paper"?renderPaperDrawer():renderDrawer(openId);
+  if(!LB && !render.libLoading){ render.libLoading=true; loadLib().then(()=>{ if(view==="project"&&S) render() }).catch(()=>{}) }
+  const np=LB?papers().filter(p=>(p.projects||[]).includes(cur)).length:0;
+  $("#nPapers").textContent=np||""; $("#nPapers").style.display=np?"":"none";
   syncMic();
 }
 function heroSub(){
@@ -1091,10 +1174,12 @@ $("#newDlg").addEventListener("close",async()=>{
 $("#showArchived").onchange=e=>{ui.archived=e.target.checked;persist();renderHome()};
 
 /* ---------- drawer ---------- */
-function openDrawer(id,push=true){openId=id;renderDrawer(id);syncMic();$("#drawer").classList.add("on");$("#scrim").classList.add("on");$("#drawer").setAttribute("aria-hidden","false");
+function openDrawer(id,push=true){openId=id;openKind="rec";renderDrawer(id);syncMic();$("#drawer").classList.add("on");$("#scrim").classList.add("on");$("#drawer").setAttribute("aria-hidden","false");
   if(push) history.replaceState(null,"",itemHash(id))}
 function closeDrawer(silent){openId=null;$("#drawer").classList.remove("on");$("#scrim").classList.remove("on");$("#drawer").setAttribute("aria-hidden","true");
-  if(!silent && cur) history.replaceState(null,"",itemHash());
+  if(!silent && view==="library") history.replaceState(null,"","#/library");
+  else if(!silent && cur) history.replaceState(null,"",itemHash());
+  openKind="rec";
   if(pendingRefresh){pendingRefresh=false;refresh()}}
 function notesHTML(it,keepNote){
   return `<div class="sec"><h5>${ic("msg","sm")}Notes & conversation (${(it.notes||[]).length})</h5>
@@ -1275,6 +1360,7 @@ async function promote(th){
 $("#scrim").onclick=()=>closeDrawer();
 $("#drawer").addEventListener("click",e=>{
   if(e.target.closest("#dClose")) closeDrawer();
+  if(openKind==="paper"){ paperDrawerClick(e); return }
   const mv=e.target.closest("[data-mdedit]"); if(mv && !e.target.closest("a") && !String(getSelection())) mdEdit(mv.dataset.mdedit);
   if(e.target.closest("#notePost")) postNote();
   if(e.target.closest("#dDelete") && confirm("Delete "+openId+"? This can't be undone.")){api({op:"delete",id:openId});closeDrawer()}
@@ -1288,6 +1374,7 @@ $("#drawer").addEventListener("change",e=>{
   if(e.target.id==="dCat") upd(openId,{category:e.target.value});
 });
 $("#drawer").addEventListener("focusout",e=>{
+  if(openKind==="paper"){ paperFocusout(e); if(pendingRefresh && !$("#drawer").contains(e.relatedTarget)){pendingRefresh=false;refresh()} return }
   const it=findRec(openId); if(!it) return;
   const f=FIELD_MAP[e.target.id];
   const curv=f==="related"?(it.related||[]).join(", "):(it[f]||"");
@@ -1297,10 +1384,24 @@ $("#drawer").addEventListener("focusout",e=>{
   else if(pendingRefresh && !$("#drawer").contains(e.relatedTarget)){pendingRefresh=false;refresh()}
 });
 $("#drawer").addEventListener("keydown",e=>{
-  if((e.target.id==="dTitle"||e.target.id==="dWhere"||e.target.id==="dRelated") && e.key==="Enter"){e.preventDefault();e.target.blur()}
+  if(["dTitle","dWhere","dRelated","lTitle","lShort","lAuthors","lYear","lVenue","lTags"].includes(e.target.id) && e.key==="Enter"){e.preventDefault();e.target.blur()}
   if(e.target.id==="noteInput" && e.key==="Enter" && (e.metaKey||e.ctrlKey)) postNote();
 });
-function postNote(){const t=$("#noteInput");if(!t.value.trim())return;const v=t.value;t.value="";api({op:"note",id:openId,text:v}).then(()=>toast("Note posted","msg"))}
+function postNote(){const t=$("#noteInput");if(!t.value.trim())return;const v=t.value;t.value="";
+  (openKind==="paper"?libApi({op:"note",id:openId,text:v}):api({op:"note",id:openId,text:v})).then(()=>toast("Note posted","msg"))}
+function paperDrawerClick(e){
+  const mv=e.target.closest("[data-mdedit]"); if(mv && !e.target.closest("a") && !String(getSelection())) mdEdit(mv.dataset.mdedit);
+  if(e.target.closest("#notePost")) postNote();
+  const p=findPaper(openId); if(!p) return;
+  const rd=e.target.closest("[data-lread]"); if(rd){ libApi({op:"paper_update",id:p.id,fields:{reading:rd.dataset.lread}}); return }
+  const pj=e.target.closest("[data-lproj]");
+  if(pj){ const s=pj.dataset.lproj, cur_=p.projects||[]; libApi({op:"paper_update",id:p.id,fields:{projects:cur_.includes(s)?cur_.filter(x=>x!==s):[...cur_,s]}}); return }
+  if(e.target.closest("[data-copybib]")){ fetch(`/api/library/bib?ids=${p.id}`).then(r=>r.text()).then(t=>navigator.clipboard.writeText(t)).then(()=>toast("BibTeX copied","copy"),er=>toast("Copy failed: "+er.message,"alert")); return }
+  if(e.target.closest("[data-refresh]")){ toast("Looking the details up…","search");
+    http("/api/library/refresh",{id:p.id}).then(j=>{LB=j;lbVersion=j.version;libRender();toast(j.changed.length?"Updated "+j.changed.join(", "):"Nothing new found","check")}).catch(er=>toast(er.message,"alert")); return }
+  if(e.target.closest("[data-attach]")){ attachId=p.id; $("#libFile").click(); return }
+  if(e.target.closest("[data-pdelete]") && confirm(`Delete ${p.id} “${p.short||p.title}”? The PDF goes to the library's trash folder.`)){ const id=p.id; closeDrawer(); libApi({op:"paper_delete",id}); }
+}
 function saveThought(sel){const t=$(sel);if(!t.value.trim())return;api({op:"thought",text:t.value});t.value="";toast("Saved. You can let go of it now.","bulb")}
 $("#quickSave").onclick=()=>saveThought("#quickThought");
 $("#thoughtSave").onclick=()=>saveThought("#thoughtInput");
@@ -1321,6 +1422,7 @@ document.addEventListener("keydown",e=>{
   if(e.key==="Escape"){ if(rec){stopRec(true);return} if(openId){closeDrawer();return} closeMenu(); }
   if(/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName) || e.metaKey || e.ctrlKey || $("#newDlg").open) return;
   if(e.key==="g"){go("#/");return}
+  if(view==="library"&&e.key==="/"){e.preventDefault();$("#lq").focus();return}
   if(view!=="project") return;
   if(e.key==="/"){e.preventDefault();go(`#/${encodeURIComponent(cur)}/items`);setTimeout(()=>$("#q").focus(),60)}
   if(e.key==="t"){e.preventDefault();go(`#/${encodeURIComponent(cur)}/focus`);setTimeout(()=>$("#quickThought").focus(),60)}
@@ -1330,6 +1432,239 @@ $("#board").addEventListener("dragstart",e=>{const c=e.target.closest(".bcard");
 $("#board").addEventListener("dragover",e=>{const c=e.target.closest(".col");if(c){e.preventDefault();document.querySelectorAll(".col").forEach(x=>x.classList.toggle("over",x===c))}});
 $("#board").addEventListener("dragleave",e=>{if(!e.relatedTarget||!$("#board").contains(e.relatedTarget))document.querySelectorAll(".col").forEach(x=>x.classList.remove("over"))});
 $("#board").addEventListener("drop",e=>{e.preventDefault();document.querySelectorAll(".col").forEach(x=>x.classList.remove("over"));const c=e.target.closest(".col");const id=e.dataTransfer.getData("text/plain");if(c&&id){const it=S.items.find(i=>i.id===id);if(it.status!==c.dataset.col)upd(id,{status:c.dataset.col})}});
+
+/* ---------- paper library ---------- */
+const READ = {"to-read":{label:"To read",c:"var(--todo)",i:"todo"}, skimmed:{label:"Skimmed",c:"var(--doing)",i:"doing"},
+  read:{label:"Read",c:"var(--done)",i:"done"}, key:{label:"Key paper",c:"var(--p2)",i:"spark"}};
+const CARD_SECS = [["problem","Problem"],["approach","Approach"],["contributions","Contributions"],["evaluation","Evaluation"],
+  ["limitations","Limitations"],["gaps","Gaps & openings"],["questions","Open questions"]];
+let LB = null, lbVersion = null, openKind = "rec", grepHits = null;
+const papers = () => (LB && LB.papers) || [];
+const findPaper = id => papers().find(p=>p.id===id);
+async function loadLib(){ LB=await http("/api/library"); lbVersion=LB.version; }
+async function libApi(op){
+  try{ LB=await http("/api/library/op",op); lbVersion=LB.version; libRender(); return LB }
+  catch(e){ toast(e.message,"alert") }
+}
+function libRender(){
+  if(view==="library") renderLibrary();
+  else if(view==="project" && curTab()==="papers") renderProjPapers();
+  else if(view==="home") renderHome();
+  if(openId && openKind==="paper") renderPaperDrawer();
+}
+const rdChip = r => READ[r]?`<span class="rd" style="color:${READ[r].c}" title="${READ[r].label}">${ic(READ[r].i)}</span>`:"";
+function authShort(p){ const a=p.authors||[]; if(!a.length) return ""; const last=a[0].split(" ").pop(); return last+(a.length>2?" et al.":a.length===2?" & "+a[1].split(" ").pop():"") }
+const VENUES=[[/Computer and Communications Security|\bCCS\b/i,"CCS"],[/USENIX Security/i,"USENIX Sec."],[/Network and Distributed System/i,"NDSS"],
+  [/Symposium on Security and Privacy/i,"IEEE S&P"],[/Knowledge Discovery|SIGKDD/i,"KDD"],[/Annual Computer Security Applications/i,"ACSAC"],
+  [/Data and Application Security/i,"CODASPY"],[/Computer Supported Cooperative Work/i,"CSCWD"],[/Data Engineering/i,"ICDE"],
+  [/Digital Threats/i,"DTRAP"],[/IEEE Access/i,"IEEE Access"],[/Research in Attacks, Intrusions/i,"RAID"],[/World Wide Web|\bWWW\b/i,"WWW"]];
+function venueShort(v){ v=v||""; for(const [re,n] of VENUES) if(re.test(v)) return n; const m=v.match(/\b(CCS|USENIX Security|NDSS|S&P|Symposium on Security and Privacy|KDD|ACSAC|RAID|CODASPY|ESORICS|AsiaCCS|ICDE|WWW|CSCWD)\b/i);
+  if(/Transactions on Dependable/i.test(v)) return "TDSC"; if(/Transactions on Information Forensics/i.test(v)) return "TIFS"; if(/Network and Service Management/i.test(v)) return "TNSM";
+  if(/Computers (&|and) Security/i.test(v)) return "Comput. Secur."; if(/Knowledge-Based Systems/i.test(v)) return "KBS"; if(/Computer Networks/i.test(v)) return "Comput. Netw.";
+  if(m) return m[1].replace(/Symposium on Security and Privacy/i,"S&P"); return v.length>34?v.slice(0,32)+"…":v }
+function prowHTML(p,inProj){
+  const tl=(p.card&&p.card.tldr)||"";
+  const sub=[authShort(p),p.year,venueShort(p.venue)].filter(Boolean).join(" · ");
+  const head=p.short && !p.title.toLowerCase().startsWith(p.short.toLowerCase()) ? `<b>${esc(p.short)}</b>` : "";
+  return `<div class="prow" data-pid="${p.id}">${rdChip(p.reading)}<span class="rid">${p.id}</span>
+    <div class="pmain"><div class="ptitle">${head}${esc(p.title)}</div><div class="psub">${esc(sub)}</div>${tl?`<div class="ptldr">${esc(tl.replace(/\*\*|`|(?<![\w*])\*(?=\S)|(?<=\S)\*(?![\w*])/g,""))}</div>`:""}</div>
+    <span class="rmeta">${inProj?"":(p.projects||[]).slice(0,2).map(s=>{const pr=P.find(x=>x.slug===s);return pr?ptile(pr,"sm"):""}).join("")}
+      ${tl?`<span class="muted" title="Has a card" style="display:flex">${ic("spark","sm")}</span>`:""}
+      ${(p.notes||[]).length?`<span class="muted" style="font-size:12px;display:flex;align-items:center;gap:3px">${ic("msg","sm")}${p.notes.length}</span>`:""}
+      ${p.pdf?"":`<span class="chip tag" title="No PDF attached">no pdf</span>`}</span></div>`;
+}
+function libHay(p){ const c=p.card||{};
+  return [p.id,p.title,p.short,(p.authors||[]).join(" "),p.venue,p.year,(p.tags||[]).join(" "),p.abstract,p.summary,
+    Object.values(c).map(v=>Array.isArray(v)?v.join(" "):v).join(" "),(p.notes||[]).map(n=>n.text).join(" ")].join(" ").toLowerCase() }
+function filterPapers(list,q){ q=(q||"").trim().toLowerCase(); if(!q) return list; const ws=q.split(/\s+/); return list.filter(p=>{const h=libHay(p);return ws.every(w=>h.includes(w))}) }
+function addBarHTML(proj){
+  return `<div class="card ladd" data-addbar="${esc(proj||"")}">
+    <input class="inp" data-libref placeholder="Add a paper: arXiv id, DOI, or an arXiv/DOI link${proj?" (tagged to this project)":""}">
+    <button class="btn small primary" data-libadd>${ic("plus","sm")}Add</button>
+    <button class="btn small" data-libupload>${ic("upload","sm")}Upload PDFs / .bib</button>
+    <div class="hint">Or drop PDFs anywhere on this page. Details are looked up on arXiv, Semantic Scholar and Crossref; the text is extracted so agents can read and search it.</div></div>`;
+}
+function renderLibrary(){
+  document.title="Library · brainboard";
+  const ps=papers(), lu=ui.lib;
+  const n=r=>ps.filter(p=>p.reading===r).length, cards=ps.filter(p=>p.card&&p.card.tldr).length;
+  $("#lhero").innerHTML=`<span class="ptile lg" style="--pc:var(--accent)">📚</span><div class="grow"><h1>Library</h1>
+    <p class="desc">Papers shared by all your projects. Agents read them with <code>bb paper-text</code> and <code>bb grep</code>.</p>
+    <div class="sub">${ps.length} paper${ps.length===1?"":"s"} · ${n("key")} key · ${n("read")} read · ${n("skimmed")} skimmed · ${n("to-read")} to read · ${cards} with cards</div></div>`;
+  if(!$("#laddL").firstChild) $("#laddL").innerHTML=addBarHTML("");
+  document.querySelectorAll("#fRead button").forEach(b=>b.classList.toggle("on",b.dataset.v===(lu.read||"")));
+  const projs=[...new Set(ps.flatMap(p=>p.projects||[]))];
+  $("#fLProj").innerHTML=`<option value="">All projects</option>`+P.filter(p=>!p.archived||projs.includes(p.slug)).map(p=>`<option value="${esc(p.slug)}" ${lu.proj===p.slug?"selected":""}>${esc(p.title)}</option>`).join("")+`<option value="none" ${lu.proj==="none"?"selected":""}>Not in a project</option>`;
+  const tags=[...new Set(ps.flatMap(p=>p.tags||[]))].sort();
+  $("#fLTag").innerHTML=`<option value="">All tags</option>`+tags.map(t=>`<option ${lu.tag===t?"selected":""}>${esc(t)}</option>`).join("");
+  $("#fLSort").value=lu.sort||"added";
+  let list=ps.filter(p=>(!lu.read||p.reading===lu.read)&&(!lu.tag||(p.tags||[]).includes(lu.tag))
+    &&(!lu.proj||(lu.proj==="none"?!(p.projects||[]).length:(p.projects||[]).includes(lu.proj))));
+  list=filterPapers(list,$("#lq").value);
+  const s=lu.sort||"added";
+  list.sort(s==="year"?(a,b)=>(b.year||0)-(a.year||0):s==="title"?(a,b)=>(a.short||a.title).localeCompare(b.short||b.title):(a,b)=>(b.added||"").localeCompare(a.added||""));
+  $("#llist").innerHTML=list.length?list.map(prowHTML).join(""):emptyHTML("book",ps.length?"No papers match.":"No papers yet. Add one by arXiv id or DOI, or drop PDFs here.");
+  renderGrep();
+}
+function renderProjPapers(){
+  if(!LB){ loadLib().then(()=>{ if(view==="project"&&curTab()==="papers") renderProjPapers() }).catch(e=>toast(e.message,"alert")); return }
+  if(!$("#laddP").firstChild||$("#laddP").firstChild.dataset.addbar!==cur) $("#laddP").innerHTML=addBarHTML(cur);
+  $("#pBib").href=`/api/library/bib?project=${encodeURIComponent(cur)}`;
+  const mine=papers().filter(p=>(p.projects||[]).includes(cur));
+  const list=filterPapers(mine,$("#pq").value).sort((a,b)=>(b.added||"").localeCompare(a.added||""));
+  $("#nPapers").textContent=mine.length||""; $("#nPapers").style.display=mine.length?"":"none";
+  $("#plist").innerHTML=list.length?list.map(p=>prowHTML(p,true)).join("")
+    :emptyHTML("book",mine.length?"No papers match.":"No papers tagged to this project yet. Add one above, or tag existing papers from the library (open a paper → Projects).");
+}
+function hl(text,terms){ let h=esc(text); terms.forEach(t=>{ if(t.length<2) return; h=h.replace(new RegExp(esc(t).replace(/[.*+?^${}()|[\]\\]/g,"\\$&"),"gi"),m=>`<mark>${m}</mark>`) }); return h }
+async function runGrep(){
+  const q=$("#lq").value.trim(); if(!q){ grepHits=null; renderGrep(); return }
+  grepHits={q,loading:true}; renderGrep();
+  try{ const j=await http("/api/library/grep?"+new URLSearchParams({q,limit:40,project:ui.lib.proj&&ui.lib.proj!=="none"?ui.lib.proj:""})); grepHits={q,hits:j.hits} }
+  catch(e){ grepHits=null; toast(e.message,"alert") }
+  renderGrep();
+}
+function renderGrep(){
+  const el=$("#lgrep"); if(!grepHits){ el.innerHTML=""; return }
+  const terms=(grepHits.q.match(/"([^"]+)"|\S+/g)||[]).map(t=>t.replace(/"/g,""));
+  el.innerHTML=`<div class="card list" style="margin-bottom:14px"><div class="ghead2">${ic("file","sm")}Full-text matches for <b>${esc(grepHits.q)}</b>
+    <span class="muted">${grepHits.loading?"searching…":grepHits.hits.length+" hit"+(grepHits.hits.length===1?"":"s")}</span>
+    <button class="ghost" style="margin-left:auto" data-grepclose>${ic("x","sm")}</button></div>
+    ${grepHits.loading?"":grepHits.hits.length?grepHits.hits.map(h=>`<div class="ghit" data-grephit="${h.id}" data-page="${h.page}">
+      <span class="rid">${h.id}</span><span class="chip tag">${h.page==="meta"?"card/notes":"p."+h.page}</span>
+      <div><div class="ptitle" style="font-size:13px">${esc(h.short)}</div><div class="snip">…${hl(h.snippet,terms)}…</div></div></div>`).join("")
+      :emptyHTML("search","No page contains all of these words. Quote a phrase to keep it together.")}</div>`;
+}
+/* paper drawer */
+function openPaper(id,push=true){
+  if(!findPaper(id)){ toast("No such paper: "+id,"alert"); return }
+  openId=id; openKind="paper"; renderPaperDrawer();
+  if(!P.length) loadProjects().then(()=>{ if(openId===id&&openKind==="paper") renderPaperDrawer() }).catch(()=>{}); $("#drawer").classList.add("on"); $("#scrim").classList.add("on"); $("#drawer").setAttribute("aria-hidden","false");
+  if(push && view==="library") history.replaceState(null,"",`#/library/${id}`);
+}
+function renderPaperDrawer(){
+  const p=findPaper(openId); if(!p){ closeDrawer(); return }
+  const D=$("#drawer"), keepNote=D.querySelector("#noteInput")?.value||"";
+  const c=p.card||{}, R=READ[p.reading]||READ["to-read"];
+  const links=[p.arxiv?`<a class="btn small" href="https://arxiv.org/abs/${esc(p.arxiv)}" target="_blank" rel="noopener">${ic("link","sm")}arXiv</a>`:"",
+    p.doi?`<a class="btn small" href="https://doi.org/${esc(p.doi)}" target="_blank" rel="noopener">${ic("link","sm")}DOI</a>`:"",
+    !p.arxiv&&!p.doi&&p.url?`<a class="btn small" href="${esc(p.url)}" target="_blank" rel="noopener">${ic("link","sm")}Link</a>`:""].join("");
+  const cardHTML=c.tldr||CARD_SECS.some(([k])=>c[k])?`<div class="pcardbox">
+      ${c.tldr?`<div class="tldr md">${md(c.tldr)}</div>`:""}
+      ${CARD_SECS.filter(([k])=>c[k]).map(([k,l])=>`<div class="cardsec"><h6>${l}</h6><div class="md">${md(c[k])}</div></div>`).join("")}
+      ${(c.datasets||[]).length?`<div class="cardsec"><h6>Datasets</h6><div class="srcs">${c.datasets.map(d=>`<span class="chip tag">${esc(d)}</span>`).join("")}</div></div>`:""}
+      ${(c.metrics||[]).length?`<div class="cardsec"><h6>Metrics</h6><div class="srcs">${c.metrics.map(d=>`<span class="chip tag">${esc(d)}</span>`).join("")}</div></div>`:""}
+      <div class="muted" style="font-size:12px;margin-top:12px">Card by ${esc(c.by||"?")} · ${ago(c.at)}</div></div>`
+    :`<div class="muted" style="font-size:13px">No card yet. Ask an agent: <code>read ${p.id} and write its card</code>.</div>`;
+  D.innerHTML=`<div class="dhead"><span class="rid">${p.id}</span>
+      <textarea class="dtitle" id="lTitle" rows="1">${esc(p.title)}</textarea>
+      <button class="iconbtn" id="dClose" title="Close (Esc)">${ic("x")}</button></div>
+    <div class="dbody">
+      <div class="timeline">${ic("book","sm")}<span>${esc([authShort(p),p.year].filter(Boolean).join(" · "))}</span>${p.venue?`<span title="${esc(p.venue)}">${esc(venueShort(p.venue))}</span>`:""}
+        ${p.pdf?`<span>${ic("file","sm")}${p.pages} pages</span>`:""}<span>${ic("clock","sm")}added ${ago(p.added)}</span></div>
+      <div class="pacts" style="margin-top:12px">
+        ${p.pdf?`<a class="btn small primary" href="/api/library/pdf/${p.id}" target="_blank" rel="noopener">${ic("file","sm")}Open PDF</a>`
+          :`<button class="btn small primary" data-attach>${ic("upload","sm")}Attach PDF</button>`}
+        ${links}
+        <button class="btn small" data-copybib>${ic("copy","sm")}Copy BibTeX</button>
+        <button class="btn small" data-refresh title="Look the details up again on arXiv / Semantic Scholar / Crossref">${ic("search","sm")}Refresh details</button>
+      </div>
+      <div class="ctrl">
+        <label>Reading</label><div class="pills">${Object.entries(READ).map(([k,v])=>`<button class="pill ${p.reading===k?"on":""}" data-lread="${k}" style="${p.reading===k?`color:${v.c}`:""}"><span style="color:${v.c};display:flex">${ic(v.i,"sm")}</span>${v.label}</button>`).join("")}</div>
+        <label>Projects</label><div class="pills">${P.filter(x=>!x.archived||(p.projects||[]).includes(x.slug)).map(x=>`<button class="pill ${(p.projects||[]).includes(x.slug)?"on":""}" data-lproj="${esc(x.slug)}" style="${(p.projects||[]).includes(x.slug)?`color:${esc(x.color)}`:""}">${esc(x.icon||"📌")} ${esc(x.title)}</button>`).join("")||`<span class="muted">No projects yet</span>`}</div>
+        <label>Short name</label><input class="inp" id="lShort" value="${esc(p.short)}" placeholder="e.g. POIROT">
+        <label>Authors</label><input class="inp" id="lAuthors" value="${esc((p.authors||[]).join(", "))}">
+        <label>Year · venue</label><div style="display:flex;gap:8px"><input class="inp" id="lYear" style="width:90px" value="${esc(p.year||"")}"><input class="inp" id="lVenue" value="${esc(p.venue)}"></div>
+        <label>Tags</label><input class="inp" id="lTags" value="${esc((p.tags||[]).join(", "))}" placeholder="comma-separated">
+      </div>
+      <div class="sec"><h5>${ic("user","sm")}Your summary</h5>${mdView("lSummary",p.summary,"field")}<textarea class="field${p.summary?" hidden":""}" id="lSummary" rows="${rows(p.summary,3,14)}" placeholder="What you take from it, in your words…">${esc(p.summary)}</textarea></div>
+      <div class="sec"><h5>${ic("spark","sm")}Card</h5>${cardHTML}</div>
+      ${p.abstract?`<div class="sec"><details class="abs"><summary>Abstract</summary><p class="abstract">${esc(p.abstract)}</p></details></div>`:""}
+      ${notesHTML(p,keepNote)}
+      <div class="sec" style="margin-top:30px;display:flex;justify-content:space-between;align-items:center">
+        <span class="muted" style="font-size:12px">${esc(p.source||"")}${p.bibkey?` · <code>${esc(p.bibkey)}</code>`:""}</span>
+        <button class="ghost danger" data-pdelete>${ic("trash","sm")}Delete paper</button></div>
+    </div>`;
+  autosize($("#lTitle"));
+}
+const LFIELDS={lTitle:"title",lShort:"short",lAuthors:"authors",lYear:"year",lVenue:"venue",lTags:"tags",lSummary:"summary"};
+function paperFieldValue(p,f){ const v=p[f]; return Array.isArray(v)?v.join(", "):String(v??"") }
+function paperFocusout(e){
+  const p=findPaper(openId); if(!p) return;
+  const f=LFIELDS[e.target.id]; if(!f) return;
+  const val=e.target.value.trim(), curv=paperFieldValue(p,f);
+  const mv=$(`[data-mdedit="${e.target.id}"]`);
+  if(val===curv){ if(mv){e.target.classList.add("hidden");mv.classList.remove("hidden")} return }
+  if(f==="title"&&!val){ e.target.value=p.title; return }
+  libApi({op:"paper_update",id:p.id,fields:{[f]:val}});
+}
+/* adding papers */
+async function uploadFiles(files,proj){
+  files=[...files]; if(!files.length) return;
+  let added=0, existed=0, failed=0;
+  for(const [i,f] of files.entries()){
+    toast(`Adding ${i+1}/${files.length}: ${f.name} (looking up details…)`,"upload");
+    try{
+      if(/\.bib$/i.test(f.name)){
+        const j=await http("/api/library/bib",Object.assign({bib:await f.text()},proj?{projects:[proj]}:{}));
+        LB=j; added+=j.added.length; existed+=j.skipped.length; continue;
+      }
+      const qs=new URLSearchParams(Object.assign({who:ME},proj?{projects:proj}:{}));
+      const r=await fetch("/api/library/upload?"+qs,{method:"POST",headers:{"Content-Type":"application/pdf","X-Filename":encodeURIComponent(f.name)},body:f});
+      const j=await r.json().catch(()=>({error:"bad response"})); if(!r.ok) throw new Error(j.error||r.status);
+      LB=j; j.existed?existed++:added++;
+      if(j.existed && proj){ const p=findPaper(j.id); if(p&&!(p.projects||[]).includes(proj)) await libApi({op:"paper_update",id:p.id,fields:{projects:[...(p.projects||[]),proj]}}) }
+    }catch(e){ failed++; toast(`${f.name}: ${e.message}`,"alert"); await new Promise(r=>setTimeout(r,1500)) }
+  }
+  lbVersion=LB&&LB.version; libRender();
+  toast(`${added} added`+(existed?`, ${existed} already in the library`:"")+(failed?`, ${failed} failed`:""),failed?"alert":"check");
+}
+async function addRef(input,proj){
+  const ref=input.value.trim(); if(!ref) return;
+  toast("Looking it up…","search");
+  try{ const j=await http("/api/library/import",Object.assign({ref},proj?{projects:[proj]}:{}));
+    LB=j; lbVersion=j.version; input.value="";
+    if(j.existed && proj){ const p=findPaper(j.id); if(p&&!(p.projects||[]).includes(proj)) await libApi({op:"paper_update",id:p.id,fields:{projects:[...(p.projects||[]),proj]}}) }
+    libRender(); toast(j.existed?`Already in the library as ${j.id}`:`Added ${j.id}`,"check"); openPaper(j.id);
+  }catch(e){ toast(e.message,"alert") }
+}
+let uploadProj="", attachId=null;
+$("#libFile").onchange=e=>{ const fs=[...e.target.files]; e.target.value="";
+  if(attachId){ const id=attachId; attachId=null; const f=fs[0]; if(!f) return;
+    toast("Attaching PDF…","upload");
+    fetch(`/api/library/upload?id=${id}&who=${ME}`,{method:"POST",headers:{"Content-Type":"application/pdf"},body:f})
+      .then(r=>r.json().then(j=>{ if(!r.ok) throw new Error(j.error); LB=j; lbVersion=j.version; libRender(); toast("PDF attached","check") })).catch(er=>toast(er.message,"alert"));
+    return }
+  uploadFiles(fs,uploadProj) };
+document.addEventListener("click",e=>{
+  const row=e.target.closest("[data-pid]"); if(row){ openPaper(row.dataset.pid); return }
+  const bar=e.target.closest("[data-addbar]");
+  if(bar && e.target.closest("[data-libadd]")){ addRef(bar.querySelector("[data-libref]"),bar.dataset.addbar); return }
+  if(bar && e.target.closest("[data-libupload]")){ uploadProj=bar.dataset.addbar; attachId=null; $("#libFile").click(); return }
+  if(e.target.closest("[data-grepclose]")){ grepHits=null; renderGrep(); return }
+  const hit=e.target.closest("[data-grephit]");
+  if(hit){ const pg=hit.dataset.page, p=findPaper(hit.dataset.grephit);
+    if(pg!=="meta" && p && p.pdf) window.open(`/api/library/pdf/${p.id}#page=${pg}`,"_blank","noopener"); else openPaper(hit.dataset.grephit); return }
+});
+document.addEventListener("keydown",e=>{ const t=e.target;
+  if(t.matches&&t.matches("[data-libref]")&&e.key==="Enter"){ e.preventDefault(); addRef(t,t.closest("[data-addbar]").dataset.addbar) }
+  if(t.id==="lq"&&e.key==="Enter"){ e.preventDefault(); runGrep() }
+});
+$("#lq").addEventListener("input",()=>{ renderLibrary() });
+$("#pq").addEventListener("input",renderProjPapers);
+$("#lGrepBtn").onclick=runGrep;
+$("#fRead").onclick=e=>{const b=e.target.closest("button");if(!b)return;ui.lib.read=b.dataset.v;persist();renderLibrary()};
+$("#fLProj").onchange=e=>{ui.lib.proj=e.target.value;persist();renderLibrary()};
+$("#fLTag").onchange=e=>{ui.lib.tag=e.target.value;persist();renderLibrary()};
+$("#fLSort").onchange=e=>{ui.lib.sort=e.target.value;persist();renderLibrary()};
+/* drop PDFs on the library page or a project's Papers tab */
+const dropOK=()=>view==="library"||(view==="project"&&curTab()==="papers");
+let dragDepth=0;
+window.addEventListener("dragenter",e=>{ if(dropOK()&&[...e.dataTransfer.types].includes("Files")){dragDepth++;$("#ldrop").classList.add("on")} });
+window.addEventListener("dragleave",()=>{ if(--dragDepth<=0){dragDepth=0;$("#ldrop").classList.remove("on")} });
+window.addEventListener("dragover",e=>{ if(dropOK()&&[...e.dataTransfer.types].includes("Files")) e.preventDefault() });
+window.addEventListener("drop",e=>{ if(!dropOK()||!e.dataTransfer.files.length) return; e.preventDefault(); dragDepth=0; $("#ldrop").classList.remove("on");
+  uploadFiles([...e.dataTransfer.files].filter(f=>/\.(pdf|bib)$/i.test(f.name)),view==="project"?cur:"") });
 
 window.addEventListener("hashchange",route);
 route();
