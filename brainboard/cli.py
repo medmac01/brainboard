@@ -24,6 +24,16 @@ Examples
   python3 brainboard/cli.py thought "Ask whether to keep the baseline"
   python3 brainboard/cli.py project-add "Thesis" --icon 🎓 --cats "Chapters,Experiments,Admin"
 
+Paper library (shared by all projects; P ids work with show/set/note too)
+  python3 brainboard/cli.py -p thesis papers                  # list (all without -p); -q filters titles/tags
+  python3 brainboard/cli.py paper-add arxiv:2401.12345 10.1145/3576915.3623100 --projects thesis
+  python3 brainboard/cli.py paper-add --pdf ~/Downloads/*.pdf --tags provenance
+  python3 brainboard/cli.py show P012                         # details, card, summary, notes
+  python3 brainboard/cli.py paper-text P012 --pages 3-5       # full text with page markers
+  python3 brainboard/cli.py grep '"subgraph matching" LLM'    # full-text search across the library
+  python3 brainboard/cli.py paper-card P012 --file card.json  # write the structured digest
+  python3 brainboard/cli.py -p thesis bib > refs.bib
+
 Author defaults to "claude"; override with --who or BRAINBOARD_WHO.
 """
 import argparse
@@ -39,6 +49,7 @@ import urllib.request
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import core  # noqa: E402
+import library  # noqa: E402
 
 CONFIG = os.path.expanduser("~/.config/brainboard/config.json")
 
@@ -66,14 +77,14 @@ def _write_config(cfg):
 
 # ---------- backend: remote server or local files ----------
 
-def _http(path, body=None):
-    req = urllib.request.Request(URL + path, data=None if body is None else json.dumps(body).encode(),
-                                 headers={"Content-Type": "application/json"})
+def _http(path, body=None, raw=None, ctype="application/json", timeout=20, parse=True):
+    data = raw if raw is not None else (None if body is None else json.dumps(body).encode())
+    req = urllib.request.Request(URL + path, data=data, headers={"Content-Type": ctype})
     if PASSWORD:
         req.add_header("Authorization", "Basic " + base64.b64encode(f"cli:{PASSWORD}".encode()).decode())
     try:
-        with urllib.request.urlopen(req, timeout=20) as r:
-            return json.load(r)
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            return json.load(r) if parse else r.read()
     except urllib.error.HTTPError as e:
         raise ValueError(f"server said {e.code}: {e.read().decode()[:200]}")
     except urllib.error.URLError as e:
@@ -104,6 +115,70 @@ def create_project(fields, who):
         return _http("/api/projects", {"op": "create", "fields": fields, "who": who})["slug"]
     core.ensure_home()
     return core.create_project(fields, who)
+
+
+# ---------- library backend ----------
+
+def lib_load():
+    return _http("/api/library") if URL else library.load()
+
+
+def lib_op(op, who):
+    return _http("/api/library/op", dict(op, who=who)) if URL else library.apply_op(op, who)
+
+
+def lib_add_pdf(path, who, fields):
+    with open(path, "rb") as fh:
+        raw = fh.read()
+    if URL:
+        q = urllib.parse.urlencode(dict(fields, who=who))
+        r = _http("/api/library/upload?" + q, raw=raw, ctype="application/pdf", timeout=180)
+        return r["id"], r["existed"]
+    _, pid, existed = library.add_pdf(raw, path, who, library._clean_paper(fields))
+    return pid, existed
+
+
+def lib_attach(pid, path, who):
+    with open(path, "rb") as fh:
+        raw = fh.read()
+    if URL:
+        return _http(f"/api/library/upload?id={pid}&who={urllib.parse.quote(who)}", raw=raw, ctype="application/pdf", timeout=180)
+    return library.attach_pdf(pid, raw, who)
+
+
+def lib_import(ref, who, fields):
+    if URL:
+        r = _http("/api/library/import", dict(fields, ref=ref, who=who), timeout=180)
+        return r["id"], r["existed"]
+    _, pid, existed = library.import_ref(ref, who, library._clean_paper(fields))
+    return pid, existed
+
+
+def lib_import_bib(src, who, fields):
+    if URL:
+        r = _http("/api/library/bib", dict(fields, bib=src, who=who), timeout=60)
+        return r["added"], r["skipped"]
+    _, added, skipped = library.import_bib(src, who, fields.get("tags"), fields.get("projects"))
+    return added, skipped
+
+
+def lib_text(pid, pages):
+    if URL:
+        return _http(f"/api/library/text/{pid}?pages={urllib.parse.quote(pages or '')}")
+    return library.text(pid, pages)
+
+
+def lib_grep(q, project, limit):
+    if URL:
+        return _http("/api/library/grep?" + urllib.parse.urlencode({"q": q, "project": project or "", "limit": limit}), timeout=60)["hits"]
+    return library.grep(q, project=project or "", limit=limit)
+
+
+def lib_pdf(pid):
+    if URL:
+        return _http(f"/api/library/pdf/{pid}", parse=False, timeout=120)
+    with open(library.pdf_path(pid), "rb") as fh:
+        return fh.read()
 
 
 # ---------- project resolution ----------
@@ -385,7 +460,172 @@ def cmd_next(a, data):
         print(line(it))
 
 
-GLOBAL_CMDS = {"projects", "project_add", "use", "config"}
+# ---------- paper library (no project needed) ----------
+
+def pline(p):
+    who = (p["authors"][0].split()[-1] + (" et al." if len(p["authors"]) > 1 else "")) if p.get("authors") else "?"
+    short = f"{p['short']}: " if p.get("short") and not p["title"].startswith(p["short"]) else ""
+    flags = ("" if p.get("pdf") else " [no pdf]") + (" [card]" if p.get("card", {}).get("tldr") else "")
+    return f"{p['id']:<5} {p.get('reading', ''):<8} {who} {p.get('year') or ''} · {short}{p['title']}{flags}"
+
+
+def _lib_fields(a):
+    f = {}
+    for k in ("tags", "projects", "reading"):
+        v = getattr(a, k, None)
+        if v:
+            f[k] = v
+    return f
+
+
+def cmd_papers(a):
+    ps = lib_load()["papers"]
+    if a.project:
+        ps = [p for p in ps if a.project in p.get("projects", [])]
+    if a.tag:
+        ps = [p for p in ps if a.tag in p.get("tags", [])]
+    if a.reading:
+        ps = [p for p in ps if p.get("reading") in a.reading.split(",")]
+    if a.q:
+        ql = a.q.lower()
+        ps = [p for p in ps if ql in " ".join([p["title"], p.get("short", ""), " ".join(p.get("tags", [])),
+                                                " ".join(p.get("authors", [])), p.get("venue", "")]).lower()]
+    if a.json:
+        return print(json.dumps(ps, indent=1, ensure_ascii=False))
+    for p in ps:
+        print(pline(p))
+    if not ps:
+        print("no papers" + (" match" if (a.q or a.project or a.tag or a.reading) else " yet; add some with paper-add"))
+
+
+def show_paper(p, as_json=False):
+    if as_json:
+        return print(json.dumps(p, indent=1, ensure_ascii=False))
+    print(pline(p))
+    for k in ("authors", "venue", "doi", "arxiv", "url", "bibkey", "tags", "projects"):
+        if p.get(k):
+            print(f"  {k:<9} {', '.join(p[k]) if isinstance(p[k], list) else p[k]}")
+    if p.get("pdf"):
+        print(f"  {'pdf':<9} {p.get('pages', 0)} pages  (paper-text {p['id']} --pages 1-3)")
+    for k in ("abstract", "summary"):
+        if p.get(k):
+            print(f"\n  {k.upper()}\n" + wrap(p[k]))
+    card = p.get("card") or {}
+    if card:
+        print(f"\n  CARD  (by {card.get('by', '?')}, {card.get('at', '')[:10]})")
+        for k in library.CARD_TEXT + library.CARD_LISTS:
+            if card.get(k):
+                v = ", ".join(card[k]) if isinstance(card[k], list) else card[k]
+                print(f"  · {k}\n" + wrap(v, "      "))
+    for n in p.get("notes", []):
+        print(f"\n  [{n['at'][:16]} {n['who']}]\n" + wrap(n["text"]))
+
+
+def cmd_paper_add(a):
+    f = _lib_fields(a)
+    if a.bib:
+        with open(os.path.expanduser(a.bib), encoding="utf-8") as fh:
+            added, skipped = lib_import_bib(fh.read(), a.who, f)
+        print(f"added {len(added)}: {' '.join(added) or '-'}; already there: {' '.join(skipped) or '-'}")
+    for path in a.pdf or []:
+        try:
+            pid, existed = lib_add_pdf(os.path.expanduser(path), a.who, f)
+            print(f"{'exists' if existed else 'added '} {pid}  ← {os.path.basename(path)}")
+        except (ValueError, OSError) as e:
+            print(f"failed  {os.path.basename(path)}: {e}")
+    for ref in a.refs:
+        try:
+            pid, existed = lib_import(ref, a.who, f)
+            print(f"{'exists' if existed else 'added '} {pid}  ← {ref}")
+        except ValueError as e:
+            print(f"failed  {ref}: {e}")
+    if not (a.bib or a.pdf or a.refs):
+        sys.exit("give arXiv ids / DOIs / links, --pdf FILE…, or --bib FILE")
+
+
+def _paper_set_fields(pairs):
+    fields = {}
+    for kv in pairs:
+        k, _, v = kv.partition("=")
+        fields[k] = v
+    return fields
+
+
+def cmd_paper_set(a):
+    st = lib_op({"op": "paper_update", "id": a.id, "fields": _paper_set_fields(a.pairs)}, a.who)
+    print(pline(core._find(st["papers"], a.id)))
+
+
+def cmd_paper_card(a):
+    if a.file:
+        with open(os.path.expanduser(a.file), encoding="utf-8") as fh:
+            card = json.load(fh)
+    else:
+        card = _paper_set_fields(a.pairs)
+    extra = {k: card.pop(k) for k in list(card) if k in library.PAPER_FIELDS}   # a card file may carry short/tags/…
+    fields = dict(extra, card=card) if card else extra
+    st = lib_op({"op": "paper_update", "id": a.id, "fields": fields}, a.who)
+    print(pline(core._find(st["papers"], a.id)))
+
+
+def cmd_paper_text(a):
+    t = lib_text(a.id, a.pages)
+    print(t["text"])
+    if not a.pages and t["pages"] > 3:
+        print(f"\n[{t['pages']} pages; use --pages to read part of it]", file=sys.stderr)
+
+
+def cmd_paper_pdf(a):
+    raw = lib_pdf(a.id)
+    out = a.out or f"{a.id}.pdf"
+    with open(out, "wb") as fh:
+        fh.write(raw)
+    print(f"wrote {out} ({len(raw) // 1024} KB)")
+
+
+def cmd_paper_attach(a):
+    lib_attach(a.id, os.path.expanduser(a.file), a.who)
+    print(f"attached {a.file} to {a.id}")
+
+
+def cmd_paper_delete(a):
+    lib_op({"op": "paper_delete", "id": a.id}, a.who)
+    print(f"deleted {a.id} (files kept in library/trash)")
+
+
+def cmd_grep(a):
+    hits = lib_grep(a.query, a.project, a.n)
+    for h in hits:
+        where = "meta" if h["page"] == "meta" else f"p.{h['page']}"
+        print(f"{h['id']:<5} {where:<5} ×{h['count']:<3} {h['short'][:28]:<28}  …{h['snippet']}…")
+    if not hits:
+        print("no matches")
+
+
+def cmd_bib(a):
+    if URL:
+        q = urllib.parse.urlencode({"ids": ",".join(a.ids), "project": a.project or ""})
+        return sys.stdout.write(_http("/api/library/bib?" + q, parse=False).decode())
+    ps = [p for p in library.load()["papers"] if (not a.ids or p["id"] in a.ids)
+          and (not a.project or a.project in p.get("projects", []))]
+    sys.stdout.write(library.bibtex(ps))
+
+
+LIB_ID = lambda x: bool(x) and x[0] in "PI" and x[1:].isdigit()
+
+
+def lib_route(a):
+    """show/set/note with a P or I id go to the library instead of a project."""
+    if a.cmd == "show":
+        return show_paper(core._find(lib_load()["papers"] + lib_load().get("ideas", []), a.id), a.json)
+    if a.cmd == "set":
+        return cmd_paper_set(a)
+    lib_op({"op": "note", "id": a.id, "text": a.text}, a.who)
+    print(f"noted on {a.id}")
+
+
+GLOBAL_CMDS = {"projects", "project_add", "use", "config", "papers", "paper_add", "paper_set", "paper_card",
+               "paper_text", "paper_pdf", "paper_attach", "paper_delete", "grep", "bib"}
 
 
 def main():
@@ -425,16 +665,39 @@ def main():
     p.add_argument("--problem", help="question / why"); p.add_argument("--setup", help="what is run, config, command")
     p.add_argument("--where", help="host, path, job id"); p.add_argument("--related", help="item ids, comma-separated")
     p.add_argument("--owner")
+    p = sub.add_parser("papers", help="list the paper library")
+    p.add_argument("-q", help="filter titles, authors, tags, venue"); p.add_argument("--tag")
+    p.add_argument("--reading", help="to-read,skimmed,read,key"); p.add_argument("--json", action="store_true")
+    p = sub.add_parser("paper-add", help="add papers: arXiv ids/DOIs/links, --pdf files, or --bib file")
+    p.add_argument("refs", nargs="*"); p.add_argument("--pdf", nargs="+"); p.add_argument("--bib")
+    p.add_argument("--tags"); p.add_argument("--projects", help="project slugs, comma-separated")
+    p.add_argument("--reading", choices=library.READING)
+    p = sub.add_parser("paper-set", help="edit paper fields (title short authors year venue doi arxiv url abstract "
+                                         "tags projects reading summary)")
+    p.add_argument("id"); p.add_argument("pairs", nargs="+", metavar="field=value")
+    p = sub.add_parser("paper-card", help="write a paper's card: --file card.json or key=value "
+                                          f"({', '.join(library.CARD_TEXT + library.CARD_LISTS)})")
+    p.add_argument("id"); p.add_argument("pairs", nargs="*", metavar="key=value"); p.add_argument("--file")
+    p = sub.add_parser("paper-text", help="full text with page markers"); p.add_argument("id")
+    p.add_argument("--pages", help="e.g. 1-3,7")
+    p = sub.add_parser("paper-pdf", help="download the PDF"); p.add_argument("id"); p.add_argument("-o", "--out")
+    p = sub.add_parser("paper-attach", help="attach a PDF to an existing paper"); p.add_argument("id"); p.add_argument("file")
+    p = sub.add_parser("paper-delete"); p.add_argument("id")
+    p = sub.add_parser("grep", help="full-text search across the library"); p.add_argument("query")
+    p.add_argument("-n", type=int, default=30)
+    p = sub.add_parser("bib", help="BibTeX for papers (ids, --project, or all)"); p.add_argument("ids", nargs="*")
     p = sub.add_parser("thought"); p.add_argument("text")
     p = sub.add_parser("thoughts"); p.add_argument("--all", action="store_true", help="include handled ones")
     a = ap.parse_args()
     name = a.cmd.replace("-", "_")
     try:
+        if name in ("show", "set", "note") and LIB_ID(a.id):
+            return lib_route(a)
         if name in GLOBAL_CMDS or name == "project_set":
             return globals()["cmd_" + name](a)
         a.slug = resolve(a)
         globals()["cmd_" + name](a, load(a.slug))
-    except (KeyError, ValueError, OSError) as e:
+    except (KeyError, ValueError, OSError, RuntimeError) as e:
         sys.exit(f"error: {str(e).strip(chr(39))}")
 
 

@@ -24,6 +24,16 @@ API
   GET  /api/version                  index version (changes when any project changes)
   GET  /api/p/<slug>/state|version   one project
   POST /api/p/<slug>/op              one operation (see core.apply_op)
+  GET  /api/library                  the paper library (papers, ideas, activity) + version
+  GET  /api/library/version
+  POST /api/library/op               one operation (see library.apply_op)
+  POST /api/library/upload           raw PDF body (X-Filename header; ?id=P03 attaches to that paper)
+  POST /api/library/import           {"ref": "arxiv:2401.12345" | DOI | arXiv/DOI link}
+  POST /api/library/bib              {"bib": "@article{…}"} adds entries not already there
+  GET  /api/library/pdf/<id>         the PDF
+  GET  /api/library/text/<id>?pages=3-5   extracted text with page markers
+  GET  /api/library/grep?q=…&project=…&limit=…
+  GET  /api/library/bib?ids=P01,P02  (or ?project=slug, or nothing for all) → BibTeX
   GET  /api/config                   {"voice": bool, "asr_model": …}
   POST /api/transcribe               raw audio body (Content-Type: audio/…) → {"text": …}
 """
@@ -37,6 +47,7 @@ import ssl
 import sys
 import threading
 import urllib.error
+import urllib.parse
 import urllib.request
 import uuid
 import webbrowser
@@ -44,6 +55,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import core  # noqa: E402
+import library  # noqa: E402
 
 INDEX = os.path.join(core.HERE, "index.html")
 PASSWORD = os.environ.get("BRAINBOARD_PASSWORD", "")
@@ -55,6 +67,7 @@ ASR_MODEL = os.environ.get("BRAINBOARD_ASR_MODEL", "Qwen/Qwen3-ASR-1.7B")
 ASR_LANGUAGE = os.environ.get("BRAINBOARD_ASR_LANGUAGE", "")
 AUDIO_EXT = {"audio/webm": "webm", "audio/ogg": "ogg", "audio/mp4": "m4a", "audio/mpeg": "mp3",
              "audio/wav": "wav", "audio/x-wav": "wav", "audio/aac": "aac", "audio/flac": "flac"}
+LIB_FILE_RE = re.compile(r"^/api/library/(pdf|text)/([PI]\d{2,5})$")
 PROJECT_RE = re.compile(r"^/api/p/([a-z0-9][a-z0-9-]{0,47})/(state|version|op)$")
 
 
@@ -88,7 +101,7 @@ class Handler(BaseHTTPRequestHandler):
     def _send(self, code, body, ctype="application/json", extra=()):
         raw = body if isinstance(body, bytes) else json.dumps(body, ensure_ascii=False).encode()
         self.send_response(code)
-        self.send_header("Content-Type", ctype + "; charset=utf-8")
+        self.send_header("Content-Type", ctype + ("; charset=utf-8" if ctype.startswith(("text/", "application/json")) else ""))
         self.send_header("Cache-Control", "no-store")
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("X-Frame-Options", "DENY")
@@ -138,6 +151,8 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/config":
             return self._send(200, {"voice": bool(ASR_URL), "asr_model": ASR_MODEL if ASR_URL else "",
                                     "https_port": int(os.environ.get("BRAINBOARD_TLS_PORT", 0) or 0)})
+        if path.startswith("/api/library"):
+            return self._library_get(path)
         m = PROJECT_RE.match(path)
         if m and m.group(2) != "op":
             slug = m.group(1)
@@ -154,6 +169,8 @@ class Handler(BaseHTTPRequestHandler):
         path = self.path.split("?")[0]
         if path == "/api/transcribe":
             return self._transcribe()
+        if path.startswith("/api/library/"):
+            return self._library_post(path)
         m = PROJECT_RE.match(path)
         if path != "/api/projects" and not (m and m.group(2) == "op"):
             return self._send(404, {"error": "not found"})
@@ -175,6 +192,85 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(404, {"error": str(e).strip("'\"")})
         except (ValueError, TypeError) as e:
             return self._send(400, {"error": str(e)})
+
+    def _query(self):
+        return {k: v[-1] for k, v in urllib.parse.parse_qs(urllib.parse.urlsplit(self.path).query).items()}
+
+    def _library_get(self, path):
+        q = self._query()
+        try:
+            if path == "/api/library":
+                data = library.load()
+                data["version"] = library.version()
+                return self._send(200, data)
+            if path == "/api/library/version":
+                return self._send(200, {"version": library.version()})
+            if path == "/api/library/grep":
+                hits = library.grep(q.get("q", ""), project=q.get("project", ""), limit=int(q.get("limit", 40)))
+                return self._send(200, {"hits": hits})
+            if path == "/api/library/bib":
+                ps = library.load()["papers"]
+                ids = [x for x in q.get("ids", "").split(",") if x]
+                ps = [p for p in ps if (not ids or p["id"] in ids)
+                      and (not q.get("project") or q["project"] in p.get("projects", []))]
+                return self._send(200, library.bibtex(ps).encode(), "text/plain")
+            m = LIB_FILE_RE.match(path)
+            if m and m.group(1) == "text":
+                return self._send(200, library.text(m.group(2), q.get("pages", "")))
+            if m:
+                fn = library.pdf_path(m.group(2))
+                if not os.path.exists(fn):
+                    return self._send(404, {"error": f"{m.group(2)} has no PDF"})
+                p = library.get(m.group(2))
+                name = re.sub(r"[^\w\- ]+", "", f"{p.get('short') or p['title'][:60]}").strip() or p["id"]
+                with open(fn, "rb") as fh:
+                    return self._send(200, fh.read(), "application/pdf",
+                                      [("Content-Disposition", f'inline; filename="{p["id"]} {name}.pdf"')])
+        except KeyError as e:
+            return self._send(404, {"error": str(e).strip("'\"")})
+        except ValueError as e:
+            return self._send(400, {"error": str(e)})
+        self._send(404, {"error": "not found"})
+
+    def _library_post(self, path):
+        try:
+            if path == "/api/library/upload":
+                n = int(self.headers.get("Content-Length", 0))
+                if n > library.MAX_PDF:
+                    return self._send(413, {"error": "PDF too large (50 MB max)"})
+                raw = self.rfile.read(n)
+                q = self._query()
+                who = str(q.get("who", "me"))[:32]
+                fields = {k: q[k] for k in ("tags", "projects", "reading") if q.get(k)}
+                if q.get("id"):
+                    st, pid, existed = library.attach_pdf(q["id"], raw, who), q["id"], True
+                else:
+                    name = urllib.parse.unquote(self.headers.get("X-Filename", ""))
+                    st, pid, existed = library.add_pdf(raw, name, who, library._clean_paper(fields))
+                return self._send(200, dict(st, id=pid, existed=existed, version=library.version()))
+            body = self._body()
+            who = str(body.get("who", "me"))[:32]
+            if path == "/api/library/op":
+                st = library.apply_op(body, who)
+            elif path == "/api/library/import":
+                fields = library._clean_paper({k: body[k] for k in ("tags", "projects", "reading") if body.get(k)})
+                st, pid, existed = library.import_ref(str(body.get("ref", "")), who, fields)
+                st = dict(st, id=pid, existed=existed)
+            elif path == "/api/library/bib":
+                st, added, skipped = library.import_bib(str(body.get("bib", "")), who,
+                                                        body.get("tags"), body.get("projects"))
+                st = dict(st, added=added, skipped=skipped)
+            else:
+                return self._send(404, {"error": "not found"})
+            return self._send(200, dict(st, version=library.version()))
+        except OverflowError:
+            return self._send(413, {"error": "body too large"})
+        except KeyError as e:
+            return self._send(404, {"error": str(e).strip("'\"")})
+        except (ValueError, TypeError) as e:
+            return self._send(400, {"error": str(e)})
+        except RuntimeError as e:
+            return self._send(502, {"error": str(e)})
 
     def _transcribe(self):
         if not ASR_URL:
