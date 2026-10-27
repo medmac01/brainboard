@@ -1108,7 +1108,8 @@ function mdEdit(id){const ta=document.getElementById(id), v=$(`[data-mdedit="${i
   v?.classList.add("hidden"); ta.classList.remove("hidden"); ta.focus(); ta.setSelectionRange(ta.value.length,ta.value.length)}
 const rows = (t,min,max,per=80) => Math.min(max,Math.max(min,Math.ceil((t||"").length/per)+(t||"").split("\n").length-1));
 function renderExpDrawer(x,keepNote){
-  const known=new Set(S.items.map(i=>i.id));
+  const known=new Set([...S.items,...exps()].map(i=>i.id));
+  const back=exps().filter(o=>o.id!==x.id&&(o.related||[]).includes(x.id));
   $("#drawer").innerHTML=`<div class="dhead"><span class="rid">${x.id}</span>
       <textarea class="dtitle" id="dTitle" rows="1">${esc(x.title)}</textarea>
       <button class="iconbtn" id="dClose" title="Close (Esc)">${ic("x")}</button></div>
@@ -1122,8 +1123,9 @@ function renderExpDrawer(x,keepNote){
         <label>Outcome</label><div class="pills"><button class="pill ${!x.outcome?"on":""}" data-set-outcome="">not yet</button>${Object.entries(OUTCOME).map(([k,v])=>`<button class="pill ${x.outcome===k?"on":""}" data-set-outcome="${k}" style="${x.outcome===k?`color:${v.c}`:""}"><span style="color:${v.c};display:flex">${ic(v.i,"sm")}</span>${v.label}</button>`).join("")}</div>
         <label>Owner</label><div class="pills">${["",...(S.meta.people||[])].map(o=>`<button class="pill ${(x.owner||"")===o?"on":""}" data-set-owner="${esc(o)}">${o?ownerDot(o)+esc(o):"nobody"}</button>`).join("")}</div>
         <label>Where</label><input class="inp mono" id="dWhere" value="${esc(x.location)}" placeholder="host, path, job id, notebook…">
-        <label>Related</label><div><input class="inp mono" id="dRelated" value="${esc((x.related||[]).join(", "))}" placeholder="item ids, e.g. E09, N03">
-          ${(x.related||[]).length?`<div class="srcs" style="margin-top:6px">${x.related.map(r=>known.has(r)?`<span class="chip rel" data-open="${esc(r)}" title="${esc(S.items.find(i=>i.id===r).title)}">${esc(r)}</span>`:`<span class="chip tag">${esc(r)}?</span>`).join("")}</div>`:""}</div>
+        <label>Related</label><div><input class="inp mono" id="dRelated" value="${esc((x.related||[]).join(", "))}" placeholder="item or experiment ids, e.g. E09, X02">
+          ${(x.related||[]).length?`<div class="srcs" style="margin-top:6px">${x.related.map(r=>known.has(r)?`<span class="chip rel" data-open="${esc(r)}" title="${esc(findRec(r).title)}">${esc(r)}</span>`:`<span class="chip tag">${esc(r)}?</span>`).join("")}</div>`:""}
+          ${back.length?`<div class="srcs" style="margin-top:6px;align-items:center"><span class="muted" style="font-size:12px">linked from</span>${back.map(b=>`<span class="chip rel" data-open="${esc(b.id)}" title="${esc(b.title)}">${esc(b.id)}</span>`).join("")}</div>`:""}</div>
       </div>
       <div class="sec"><h5>${ic("alert","sm")}Problem / question${micBtn("dProblem")}</h5>${mdView("dProblem",x.problem,"field")}<textarea class="field${x.problem?" hidden":""}" id="dProblem" rows="${rows(x.problem,2,10)}" placeholder="Why run this? What do you expect?">${esc(x.problem)}</textarea></div>
       <div class="sec"><h5>${ic("server","sm")}Setup${micBtn("dSetup")}</h5>${mdView("dSetup",x.setup,"field mono")}<textarea class="field mono${x.setup?" hidden":""}" id="dSetup" rows="${rows(x.setup,2,12,90)}" placeholder="What changed vs. the main run: config, command, model, seeds…">${esc(x.setup)}</textarea></div>

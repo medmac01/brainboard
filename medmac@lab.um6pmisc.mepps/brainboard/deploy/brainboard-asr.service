@@ -1,0 +1,14 @@
+[Unit]
+Description=brainboard speech-to-text (Qwen3-ASR)
+After=network-online.target
+
+[Service]
+# conda env with torch (cu126 for Pascal GPUs), qwen-asr, fastapi, uvicorn, python-multipart; ffmpeg on PATH
+Environment=ASR_DTYPE=float32
+Environment=HF_HUB_DISABLE_TELEMETRY=1
+ExecStart=%h/miniconda3/envs/qwen3-asr/bin/python %h/apps/brainboard/asr/server.py --host 127.0.0.1 --port 8010
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=default.target
