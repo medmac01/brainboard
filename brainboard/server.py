@@ -30,6 +30,7 @@ API
   POST /api/library/upload           raw PDF body (X-Filename header; ?id=P03 attaches to that paper)
   POST /api/library/import           {"ref": "arxiv:2401.12345" | DOI | arXiv/DOI link}
   POST /api/library/bib              {"bib": "@article{…}"} adds entries not already there
+  POST /api/library/refresh          {"id": "P03"} looks metadata up again, fills what's missing
   GET  /api/library/pdf/<id>         the PDF
   GET  /api/library/text/<id>?pages=3-5   extracted text with page markers
   GET  /api/library/grep?q=…&project=…&limit=…
@@ -256,6 +257,9 @@ class Handler(BaseHTTPRequestHandler):
                 fields = library._clean_paper({k: body[k] for k in ("tags", "projects", "reading") if body.get(k)})
                 st, pid, existed = library.import_ref(str(body.get("ref", "")), who, fields)
                 st = dict(st, id=pid, existed=existed)
+            elif path == "/api/library/refresh":
+                st, changed = library.refresh(str(body.get("id", "")), who)
+                st = dict(st, changed=changed)
             elif path == "/api/library/bib":
                 st, added, skipped = library.import_bib(str(body.get("bib", "")), who,
                                                         body.get("tags"), body.get("projects"))

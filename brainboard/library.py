@@ -12,6 +12,7 @@ Crossref (stdlib urllib, no keys needed).
 """
 import fcntl
 import hashlib
+import html
 import json
 import os
 import re
@@ -144,7 +145,7 @@ def _clean_paper(fields):
             f[k] = str(f[k] or "").strip()
     for k in ("title", "short", "venue"):  # publisher markup (<scp>, <i>) and wrapped lines
         if k in f:
-            f[k] = re.sub(r"\s+", " ", re.sub(r"</?[a-zA-Z:]+[^>]*>", "", f[k])).strip()
+            f[k] = html.unescape(re.sub(r"\s+", " ", re.sub(r"</?[a-zA-Z:]+[^>]*>", "", f[k])).strip())
     return f
 
 
@@ -510,6 +511,22 @@ def _same_title(a, b, first_author=None, authors=None):
         if not any(first_author.lower().split()[-1] in x.lower() for x in authors):
             return False
     return overlap >= 0.8
+
+
+def refresh(pid, who="me"):
+    """Re-run the metadata lookup for a paper; fills only empty fields, and replaces an 'arXiv' venue
+    once a published version is known. Returns (state, changed field names)."""
+    p = get(pid)
+    meta = lookup({k: p.get(k) for k in ("arxiv", "doi", "title")})
+    f = {}
+    for k, v in _paper_fields(meta).items():
+        if k in ("title", "url"):
+            continue
+        if not p.get(k) or (k == "venue" and p[k] == "arXiv" and v != "arXiv") or (k == "year" and p.get("venue") == "arXiv" and meta.get("venue", "arXiv") != "arXiv"):
+            f[k] = v
+    if not f:
+        return _state(load(), pid), []
+    return apply_op({"op": "paper_update", "id": pid, "fields": f}, who), sorted(f)
 
 
 def import_ref(ref, who="me", fields=None):

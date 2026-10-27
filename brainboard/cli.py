@@ -162,6 +162,13 @@ def lib_import_bib(src, who, fields):
     return added, skipped
 
 
+def lib_refresh(pid, who):
+    if URL:
+        r = _http("/api/library/refresh", {"id": pid, "who": who}, timeout=120)
+        return r["changed"]
+    return library.refresh(pid, who)[1]
+
+
 def lib_text(pid, pages):
     if URL:
         return _http(f"/api/library/text/{pid}?pages={urllib.parse.quote(pages or '')}")
@@ -568,6 +575,17 @@ def cmd_paper_card(a):
     print(pline(core._find(st["papers"], a.id)))
 
 
+def cmd_paper_refresh(a):
+    ps = lib_load()["papers"]
+    ids = a.ids or [p["id"] for p in ps if not p.get("venue") or p.get("venue") == "arXiv" or not p.get("abstract")]
+    for pid in ids:
+        try:
+            ch = lib_refresh(pid, a.who)
+            print(f"{pid}: {'updated ' + ', '.join(ch) if ch else 'nothing new'}")
+        except (ValueError, KeyError) as e:
+            print(f"{pid}: failed: {e}")
+
+
 def cmd_paper_text(a):
     t = lib_text(a.id, a.pages)
     print(t["text"])
@@ -625,7 +643,7 @@ def lib_route(a):
 
 
 GLOBAL_CMDS = {"projects", "project_add", "use", "config", "papers", "paper_add", "paper_set", "paper_card",
-               "paper_text", "paper_pdf", "paper_attach", "paper_delete", "grep", "bib"}
+               "paper_text", "paper_refresh", "paper_pdf", "paper_attach", "paper_delete", "grep", "bib"}
 
 
 def main():
@@ -680,6 +698,8 @@ def main():
     p.add_argument("id"); p.add_argument("pairs", nargs="*", metavar="key=value"); p.add_argument("--file")
     p = sub.add_parser("paper-text", help="full text with page markers"); p.add_argument("id")
     p.add_argument("--pages", help="e.g. 1-3,7")
+    p = sub.add_parser("paper-refresh", help="look metadata up again (default: papers still on arXiv or missing details)")
+    p.add_argument("ids", nargs="*")
     p = sub.add_parser("paper-pdf", help="download the PDF"); p.add_argument("id"); p.add_argument("-o", "--out")
     p = sub.add_parser("paper-attach", help="attach a PDF to an existing paper"); p.add_argument("id"); p.add_argument("file")
     p = sub.add_parser("paper-delete"); p.add_argument("id")
