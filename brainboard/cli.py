@@ -676,6 +676,9 @@ def cmd_idea_add(a):
                  ("projects", a.projects or a.project), ("tags", a.tags), ("status", a.status)):
         if v:
             f[k] = v
+    for k in ("pitch", "questions"):  # shells pass "\n" literally inside double quotes
+        if k in f:
+            f[k] = f[k].replace("\\n", "\n")
     st = lib_op({"op": "idea_add", "fields": f}, a.who)
     print(iline(core._find(st["ideas"], st["last"])))
 
