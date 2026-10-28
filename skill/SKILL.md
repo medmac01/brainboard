@@ -75,9 +75,25 @@ Reading status (`to-read skimmed read key`) is the user's call; don't change it 
 numbers in `evaluation`; in `limitations` say what the evaluation does *not* show (leakage, tiny test sets,
 re-implemented baselines); in `gaps` and `questions` connect the paper to the user's own work.
 
-**Brainstorming with the library**: read the cards of the relevant papers first (`bb -p S papers`, then
-`show`), use `grep` + `paper-text --pages` to check claims against the text, and cite as `P012 p.7`.
-Propose ideas with the papers they build on and the open questions, and leave the choice to the user.
+## Ideas (research ideas, also in the library)
+Ideas (`I03`) have a pitch, open questions, the papers they build on, projects and a status
+`raw promising pursuing parked dropped`. `show`, `set` and `note` take I ids.
+```bash
+bb -p S ideas                                # this project's ideas (bb ideas = all), --status promising
+bb -p S idea-add "Short title" --builds-on P17,P18 \
+   --pitch "What the idea is, what's new vs the papers, why it matters" \
+   --questions "- the first thing to find out\n- the cheapest experiment"
+bb set I03 builds_on=P17,P22 tags=hunting    # status is the user's call (they triage raw → promising)
+bb -p S idea-promote I03 [--as experiment]   # only when the user asks: creates the item/experiment, links both
+```
+
+**Brainstorming with the library** (when the user asks for ideas or directions):
+1. Read the cards of the relevant papers first (`bb -p S papers`, then `show P..`), and the existing ideas
+   (`bb -p S ideas`) so you don't repeat them.
+2. Check claims against the text with `grep` and `paper-text --pages`; cite as `P012 p.7`.
+3. Add each proposal with `idea-add` (status stays `raw`), with `--builds-on` and concrete open questions.
+   Prefer a few sharp ideas over many vague ones; say what would falsify each.
+4. Leave triage to the user. Don't promote, park or drop ideas unless asked.
 
 ## Conventions
 - Statuses: `todo doing decide blocked done skip`. Priorities: `P1 P2 P3`.

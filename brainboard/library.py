@@ -39,6 +39,8 @@ TRASH = os.path.join(LIB, "trash")
 READING = ["to-read", "skimmed", "read", "key"]
 PAPER_FIELDS = {"title", "short", "authors", "year", "venue", "doi", "arxiv", "url", "abstract", "bibkey",
                 "tags", "projects", "reading", "summary", "card"}
+IDEA_STATUSES = ["raw", "promising", "pursuing", "parked", "dropped"]
+IDEA_FIELDS = {"title", "pitch", "questions", "builds_on", "projects", "tags", "status"}
 # card = the structured digest an agent writes after reading the paper (Markdown strings, lists for the last two)
 CARD_TEXT = ["tldr", "problem", "approach", "contributions", "evaluation", "limitations", "gaps", "questions"]
 CARD_LISTS = ["datasets", "metrics"]
@@ -155,6 +157,33 @@ def _authors(v):
     return [re.sub(r"\s+", " ", str(a)).strip() for a in v if str(a).strip()]
 
 
+def _clean_idea(fields, data):
+    bad = set(fields) - IDEA_FIELDS
+    if bad:
+        raise ValueError(f"unknown idea field(s): {', '.join(sorted(bad))}")
+    f = dict(fields)
+    if "status" in f and f["status"] not in IDEA_STATUSES:
+        raise ValueError(f"idea status must be one of {IDEA_STATUSES}")
+    for k in ("builds_on", "projects", "tags"):
+        if k in f:
+            f[k] = core._as_list(f[k])
+    if "builds_on" in f:
+        f["builds_on"] = [x.upper() for x in f["builds_on"]]
+        known = {p["id"] for p in data["papers"]}
+        missing = [x for x in f["builds_on"] if x not in known]
+        if missing:
+            raise ValueError(f"unknown paper id(s): {', '.join(missing)}")
+    for s_ in f.get("projects", []):
+        if not core.SLUG_RE.match(s_):
+            raise ValueError(f"bad project slug: {s_!r}")
+    for k in ("title", "pitch", "questions"):
+        if k in f:
+            f[k] = str(f[k] or "").strip()
+    if "title" in f and not f["title"]:
+        raise ValueError("an idea needs a title")
+    return f
+
+
 def new_paper(pid):
     return {"id": pid, "title": "", "short": "", "authors": [], "year": None, "venue": "", "doi": "", "arxiv": "",
             "url": "", "abstract": "", "bibkey": "", "tags": [], "projects": [], "reading": "to-read",
@@ -229,6 +258,55 @@ def apply_op(op, who="me"):
             with open(os.path.join(TRASH, f"{stamp}.{p['id']}.json"), "w", encoding="utf-8") as fh:
                 json.dump(p, fh, indent=1, ensure_ascii=False)
             _log(data, who, f"deleted paper “{p['title'][:90]}”", p["id"])
+        elif kind == "idea_add":
+            ideas = data.setdefault("ideas", [])
+            f = _clean_idea(dict(op.get("fields") or {}), data)
+            if not f.get("title"):
+                raise ValueError("an idea needs a title")
+            idea = {"id": core._next_id(ideas, "I"), "title": "", "pitch": "", "questions": "", "builds_on": [],
+                    "projects": [], "tags": [], "status": "raw", "promoted": [], "notes": [], "by": who,
+                    "added": core.now(), "updated": core.now()}
+            idea.update(f)
+            ideas.append(idea)
+            last = idea["id"]
+            _log(data, who, f"new idea “{idea['title'][:90]}”", idea["id"])
+        elif kind == "idea_update":
+            idea = core._find(data.setdefault("ideas", []), op["id"])
+            f = _clean_idea(dict(op["fields"]), data)
+            changed = {k: v for k, v in f.items() if idea.get(k) != v}
+            if not changed:
+                return _state(data, last)
+            idea.update(changed)
+            idea["updated"] = core.now()
+            _log(data, who, core._describe(changed), idea["id"])
+        elif kind == "idea_delete":
+            ideas = data.setdefault("ideas", [])
+            idea = core._find(ideas, op["id"])
+            ideas.remove(idea)
+            _log(data, who, f"deleted idea “{idea['title'][:90]}”", idea["id"])
+        elif kind == "idea_promote":  # turn an idea into an item or experiment in a project
+            idea = core._find(data.setdefault("ideas", []), op["id"])
+            slug, as_ = str(op.get("project", "")), op.get("as", "item")
+            if as_ not in ("item", "experiment"):
+                raise ValueError("promote as 'item' or 'experiment'")
+            refs = ", ".join(idea["builds_on"])
+            origin = f"From idea {idea['id']} in the library" + (f" (builds on {refs})" if refs else "") + "."
+            text = "\n\n".join(x for x in (idea["pitch"], ("**Open questions**\n" + idea["questions"]) if idea["questions"] else "", origin) if x)
+            if as_ == "experiment":
+                st = core.apply_op(slug, {"op": "add", "coll": "experiments",
+                                          "fields": {"title": idea["title"], "problem": text, "tags": ["idea:" + idea["id"]]}}, who)
+                new_id = st["experiments"][-1]["id"]
+            else:
+                st = core.apply_op(slug, {"op": "add", "fields": {"title": idea["title"], "issue": text,
+                                                                  "kind": "idea", "tags": ["idea:" + idea["id"]]}}, who)
+                new_id = st["items"][-1]["id"]
+            idea.setdefault("promoted", []).append({"project": slug, "id": new_id, "at": core.now()})
+            if slug not in idea["projects"]:
+                idea["projects"].append(slug)
+            if idea["status"] in ("raw", "promising"):
+                idea["status"] = "pursuing"
+            idea["updated"] = core.now()
+            _log(data, who, f"promoted to {slug}/{new_id}", idea["id"])
         elif kind == "note":
             p = core._find(papers + data.setdefault("ideas", []), op["id"])
             text = op["text"].strip()
@@ -257,6 +335,10 @@ def _log(data, who, text, item=None):
 
 def get(pid):
     return core._find(load()["papers"], pid)
+
+
+def get_idea(iid):
+    return core._find(load().get("ideas", []), iid)
 
 
 # ---------- PDFs ----------

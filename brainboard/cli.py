@@ -33,6 +33,8 @@ Paper library (shared by all projects; P ids work with show/set/note too)
   python3 brainboard/cli.py grep '"subgraph matching" LLM'    # full-text search across the library
   python3 brainboard/cli.py paper-card P012 --file card.json  # write the structured digest
   python3 brainboard/cli.py -p thesis bib > refs.bib
+  python3 brainboard/cli.py -p thesis idea-add "Hunt generated variants" --pitch "…" --builds-on P17,P18
+  python3 brainboard/cli.py -p thesis ideas      # then: set I03 status=promising · idea-promote -p thesis I03
 
 Author defaults to "claude"; override with --who or BRAINBOARD_WHO.
 """
@@ -632,18 +634,80 @@ def cmd_bib(a):
 LIB_ID = lambda x: bool(x) and x[0] in "PI" and x[1:].isdigit()
 
 
+def iline(i):
+    refs = f"  ← {', '.join(i['builds_on'])}" if i.get("builds_on") else ""
+    prom = f"  → {', '.join(x['project'] + '/' + x['id'] for x in i.get('promoted', []))}" if i.get("promoted") else ""
+    return f"{i['id']:<5} {i['status']:<9} {i['title']}{refs}{prom}"
+
+
+def show_idea(i, as_json=False):
+    if as_json:
+        return print(json.dumps(i, indent=1, ensure_ascii=False))
+    print(iline(i))
+    for k in ("projects", "tags"):
+        if i.get(k):
+            print(f"  {k:<9} {', '.join(i[k])}")
+    print(f"  {'by':<9} {i.get('by', '?')}, {i.get('added', '')[:10]}")
+    for k in ("pitch", "questions"):
+        if i.get(k):
+            print(f"\n  {k.upper()}\n" + wrap(i[k]))
+    for n in i.get("notes", []):
+        print(f"\n  [{n['at'][:16]} {n['who']}]\n" + wrap(n["text"]))
+
+
+def cmd_ideas(a):
+    ideas = lib_load().get("ideas", [])
+    if a.project:
+        ideas = [i for i in ideas if a.project in i.get("projects", [])]
+    if a.status:
+        ideas = [i for i in ideas if i["status"] in a.status.split(",")]
+    if a.json:
+        return print(json.dumps(ideas, indent=1, ensure_ascii=False))
+    order = {s: k for k, s in enumerate(library.IDEA_STATUSES)}
+    for i in sorted(ideas, key=lambda i: (order[i["status"]], i["id"])):
+        print(iline(i))
+    if not ideas:
+        print("no ideas" + (" match" if a.project or a.status else " yet; add one with idea-add"))
+
+
+def cmd_idea_add(a):
+    f = {"title": a.title}
+    for k, v in (("pitch", a.pitch), ("questions", a.questions), ("builds_on", a.builds_on),
+                 ("projects", a.projects or a.project), ("tags", a.tags), ("status", a.status)):
+        if v:
+            f[k] = v
+    st = lib_op({"op": "idea_add", "fields": f}, a.who)
+    print(iline(core._find(st["ideas"], st["last"])))
+
+
+def cmd_idea_promote(a):
+    if not a.project:
+        sys.exit("error: say which project: idea-promote -p SLUG I03 [--as experiment]")
+    slug = _match(a.project, list_projects())
+    st = lib_op({"op": "idea_promote", "id": a.id, "project": slug, "as": a.as_}, a.who)
+    i = core._find(st["ideas"], a.id)
+    print(f"{a.id} → {i['promoted'][-1]['project']}/{i['promoted'][-1]['id']}")
+
+
 def lib_route(a):
     """show/set/note with a P or I id go to the library instead of a project."""
     if a.cmd == "show":
-        return show_paper(core._find(lib_load()["papers"] + lib_load().get("ideas", []), a.id), a.json)
+        data = lib_load()
+        if a.id.startswith("I"):
+            return show_idea(core._find(data.get("ideas", []), a.id), a.json)
+        return show_paper(core._find(data["papers"], a.id), a.json)
     if a.cmd == "set":
+        if a.id.startswith("I"):
+            st = lib_op({"op": "idea_update", "id": a.id, "fields": _paper_set_fields(a.pairs)}, a.who)
+            return print(iline(core._find(st["ideas"], a.id)))
         return cmd_paper_set(a)
     lib_op({"op": "note", "id": a.id, "text": a.text}, a.who)
     print(f"noted on {a.id}")
 
 
 GLOBAL_CMDS = {"projects", "project_add", "use", "config", "papers", "paper_add", "paper_set", "paper_card",
-               "paper_text", "paper_refresh", "paper_pdf", "paper_attach", "paper_delete", "grep", "bib"}
+               "paper_text", "paper_refresh", "paper_pdf", "paper_attach", "paper_delete", "grep", "bib",
+               "ideas", "idea_add", "idea_promote"}
 
 
 def main():
@@ -706,6 +770,16 @@ def main():
     p = sub.add_parser("grep", help="full-text search across the library"); p.add_argument("query")
     p.add_argument("-n", type=int, default=30)
     p = sub.add_parser("bib", help="BibTeX for papers (ids, --project, or all)"); p.add_argument("ids", nargs="*")
+    p = sub.add_parser("ideas", help="list research ideas (-p filters by project)")
+    p.add_argument("--status", help=",".join(library.IDEA_STATUSES)); p.add_argument("--json", action="store_true")
+    p = sub.add_parser("idea-add", help="add a research idea (status raw unless --status)")
+    p.add_argument("title"); p.add_argument("--pitch", help="Markdown: the idea and why it matters")
+    p.add_argument("--questions", help="Markdown: open questions / first experiment")
+    p.add_argument("--builds-on", dest="builds_on", help="paper ids, comma-separated, e.g. P17,P18")
+    p.add_argument("--projects", help="project slugs (default: -p)"); p.add_argument("--tags")
+    p.add_argument("--status", choices=library.IDEA_STATUSES)
+    p = sub.add_parser("idea-promote", help="turn an idea into an item (or --as experiment) in project -p")
+    p.add_argument("id"); p.add_argument("--as", dest="as_", choices=["item", "experiment"], default="item")
     p = sub.add_parser("thought"); p.add_argument("text")
     p = sub.add_parser("thoughts"); p.add_argument("--all", action="store_true", help="include handled ones")
     a = ap.parse_args()
