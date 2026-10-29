@@ -87,9 +87,35 @@ bb set I03 builds_on=P17,P22 tags=hunting    # status is the user's call (they t
 bb -p S idea-promote I03 [--as experiment]   # only when the user asks: creates the item/experiment, links both
 ```
 
+## Topics (a map of the field, also in the library)
+Topics (`C05`) form a tree of research directions (e.g. *CTI-driven hunting › Learned query-graph matching*).
+Each has a `position` (what the direction assumes and asks, its lineage, how it differs from its neighbours) and
+`questions` (open problems). A paper can be in several topics; its first is its main one. `show`, `set`, `note` take C ids.
+```bash
+bb topics --papers                           # the tree, paper counts, each topic's papers (* = main), unsorted papers
+bb topic-context C05                         # context pack for a deep dive: position, parents, neighbours,
+                                             #   every paper's full card and notes, linked ideas (--brief: tl;drs)
+bb papers --topic C05 · bb grep --topic C05 '"order embedding"'   # include subtopics
+bb topic-add "Title" --parent C03 --papers P20,P22 --main --position "…" --questions "- …"
+bb topic-papers C05 P31 P23 [--main | --remove]
+bb paper-set P31 topics=C05,C01              # or set the whole list (first = main); a card file may carry topics too
+bb set C05 position="…" parent=C03 · bb note C05 "…" · bb idea-add … --topics C05
+```
+- Place a paper by what it *contributes* to the field, not by the techniques it uses. After writing a card, put
+  the paper in topics if it has none (`bb topics` lists unsorted papers). Create a new topic only when no existing
+  one fits; keep topics as directions a reviewer would recognise.
+- Write `position` like a related-work paragraph: the framing, the core assumption, which papers start and
+  extend the line, and the boundary with neighbouring topics. Cite papers by id.
+- Restructuring the map (merging, splitting, deleting topics) is the user's call; propose it in a note first.
+
+**Deep dive on a topic** (when the user asks to dig into one direction): start with `bb topic-context C05`,
+check claims against the text (`grep --topic`, `paper-text --pages`), then report lineage, shared assumptions,
+contradictions, evaluation gaps and real open problems in a note on the topic; update `position`/`questions`
+only if asked, and add ideas with `--topics C05`.
+
 **Brainstorming with the library** (when the user asks for ideas or directions):
-1. Read the cards of the relevant papers first (`bb -p S papers`, then `show P..`), and the existing ideas
-   (`bb -p S ideas`) so you don't repeat them.
+1. Read the cards of the relevant papers first (`bb -p S papers`, or `bb topic-context C..` for one direction,
+   then `show P..`), and the existing ideas (`bb -p S ideas`) so you don't repeat them.
 2. Check claims against the text with `grep` and `paper-text --pages`; cite as `P012 p.7`.
 3. Add each proposal with `idea-add` (status stays `raw`), with `--builds-on` and concrete open questions.
    Prefer a few sharp ideas over many vague ones; say what would falsify each.

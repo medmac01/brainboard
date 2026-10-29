@@ -1,7 +1,7 @@
 """The paper library: one collection shared by all projects.
 
 Lives under BRAINBOARD_HOME/library:
-  library.json   papers (and, later, ideas) + activity + rev
+  library.json   papers, ideas, topics + activity + rev
   pdf/P012.pdf   the original file
   text/P012.txt  pdftotext output; pages separated by form feeds (\\f) so agents can cite pages
 
@@ -38,9 +38,11 @@ TRASH = os.path.join(LIB, "trash")
 
 READING = ["to-read", "skimmed", "read", "key"]
 PAPER_FIELDS = {"title", "short", "authors", "year", "venue", "doi", "arxiv", "url", "abstract", "bibkey",
-                "tags", "projects", "reading", "summary", "card"}
+                "tags", "projects", "reading", "summary", "card", "topics"}
 IDEA_STATUSES = ["raw", "promising", "pursuing", "parked", "dropped"]
-IDEA_FIELDS = {"title", "pitch", "questions", "builds_on", "projects", "tags", "status"}
+IDEA_FIELDS = {"title", "pitch", "questions", "builds_on", "projects", "tags", "status", "topics"}
+# topics (C01, C = cluster) map the field: a tree of research directions; a paper's first topic is its main one
+TOPIC_FIELDS = {"title", "parent", "position", "questions"}
 # card = the structured digest an agent writes after reading the paper (Markdown strings, lists for the last two)
 CARD_TEXT = ["tldr", "problem", "approach", "contributions", "evaluation", "limitations", "gaps", "questions"]
 CARD_LISTS = ["datasets", "metrics"]
@@ -55,7 +57,7 @@ DOI_RE = re.compile(r"\b(10\.\d{4,9}/[^\s\"<>]+)", re.I)
 
 def empty():
     return {"meta": {"rev": 0, "created": core.now(), "updated": core.now(), "updated_by": "brainboard"},
-            "papers": [], "ideas": [], "activity": []}
+            "papers": [], "ideas": [], "topics": [], "activity": []}
 
 
 @contextmanager
@@ -118,7 +120,7 @@ def _clean_paper(fields):
     if bad:
         raise ValueError(f"unknown paper field(s): {', '.join(sorted(bad))}")
     f = dict(fields)
-    for k in ("authors", "tags", "projects"):
+    for k in ("authors", "tags", "projects", "topics"):
         if k in f:
             f[k] = core._as_list(f[k]) if k != "authors" else _authors(f[k])
     for s in f.get("projects", []):
@@ -157,6 +159,48 @@ def _authors(v):
     return [re.sub(r"\s+", " ", str(a)).strip() for a in v if str(a).strip()]
 
 
+def _check_topics(ids, data):
+    ids = [x.upper() for x in core._as_list(ids)]
+    known = {t["id"] for t in data.get("topics", [])}
+    missing = [x for x in ids if x not in known]
+    if missing:
+        raise ValueError(f"unknown topic id(s): {', '.join(missing)} (see bb topics)")
+    return list(dict.fromkeys(ids))
+
+
+def _clean_topic(fields, data, tid=None):
+    bad = set(fields) - TOPIC_FIELDS
+    if bad:
+        raise ValueError(f"unknown topic field(s): {', '.join(sorted(bad))}")
+    f = {k: str(v or "").strip() for k, v in fields.items()}
+    if "title" in f and not f["title"]:
+        raise ValueError("a topic needs a title")
+    if f.get("parent"):
+        f["parent"] = f["parent"].upper()
+        core._find(data.get("topics", []), f["parent"])
+        if tid and (f["parent"] == tid or tid in _ancestors(data, f["parent"])):
+            raise ValueError(f"a topic can't sit inside itself ({f['parent']} is {tid} or below it)")
+    return f
+
+
+def _ancestors(data, tid):
+    """Ids from the topic's parent up to the root."""
+    out, by = [], {t["id"]: t for t in data.get("topics", [])}
+    while tid in by and by[tid].get("parent") and by[tid]["parent"] not in out:
+        tid = by[tid]["parent"]
+        out.append(tid)
+    return out
+
+
+def subtree(data, tid):
+    """The topic and every topic below it."""
+    out = [tid]
+    for t in data.get("topics", []):
+        if tid in _ancestors(data, t["id"]):
+            out.append(t["id"])
+    return out
+
+
 def _clean_idea(fields, data):
     bad = set(fields) - IDEA_FIELDS
     if bad:
@@ -176,6 +220,8 @@ def _clean_idea(fields, data):
     for s_ in f.get("projects", []):
         if not core.SLUG_RE.match(s_):
             raise ValueError(f"bad project slug: {s_!r}")
+    if "topics" in f:
+        f["topics"] = _check_topics(f["topics"], data)
     for k in ("title", "pitch", "questions"):
         if k in f:
             f[k] = str(f[k] or "").strip()
@@ -187,7 +233,7 @@ def _clean_idea(fields, data):
 def new_paper(pid):
     return {"id": pid, "title": "", "short": "", "authors": [], "year": None, "venue": "", "doi": "", "arxiv": "",
             "url": "", "abstract": "", "bibkey": "", "tags": [], "projects": [], "reading": "to-read",
-            "summary": "", "card": {}, "notes": [], "pdf": False, "pages": 0, "sha256": "", "source": "",
+            "summary": "", "card": {}, "topics": [], "notes": [], "pdf": False, "pages": 0, "sha256": "", "source": "",
             "added": core.now(), "updated": core.now()}
 
 
@@ -215,6 +261,8 @@ def apply_op(op, who="me"):
             f = _clean_paper(dict(op.get("fields") or {}))
             if not f.get("title"):
                 raise ValueError("a paper needs a title")
+            if "topics" in f:
+                f["topics"] = _check_topics(f["topics"], data)
             dup = find_dup(data, f, op.get("sha256", ""))
             if dup:
                 raise ValueError(f"already in the library as {dup['id']}: {dup['title']}")
@@ -228,6 +276,8 @@ def apply_op(op, who="me"):
         elif kind == "paper_update":
             p = core._find(papers, op["id"])
             f = _clean_paper(dict(op["fields"]))
+            if "topics" in f:
+                f["topics"] = _check_topics(f["topics"], data)
             if "card" in f:  # merge: empty values remove a card field
                 card = dict(p.get("card") or {})
                 card.update(f["card"])
@@ -307,8 +357,46 @@ def apply_op(op, who="me"):
                 idea["status"] = "pursuing"
             idea["updated"] = core.now()
             _log(data, who, f"promoted to {slug}/{new_id}", idea["id"])
+        elif kind == "topic_add":
+            topics = data.setdefault("topics", [])
+            f = _clean_topic(dict(op.get("fields") or {}), data)
+            if not f.get("title"):
+                raise ValueError("a topic needs a title")
+            t = {"id": core._next_id(topics, "C"), "title": "", "parent": "", "position": "", "questions": "",
+                 "notes": [], "by": who, "added": core.now(), "updated": core.now()}
+            t.update(f)
+            topics.append(t)
+            last = t["id"]
+            _place(data, t["id"], op.get("papers") or [], [], op.get("main"))
+            _log(data, who, f"new topic “{t['title'][:90]}”", t["id"])
+        elif kind == "topic_update":
+            t = core._find(data.setdefault("topics", []), op["id"])
+            f = _clean_topic(dict(op["fields"]), data, t["id"])
+            changed = {k: v for k, v in f.items() if t.get(k) != v}
+            if not changed:
+                return _state(data, last)
+            t.update(changed)
+            t["updated"] = core.now()
+            _log(data, who, core._describe(changed), t["id"])
+        elif kind == "topic_papers":  # put papers in a topic or take them out
+            t = core._find(data.setdefault("topics", []), op["id"])
+            add, remove = _place(data, t["id"], op.get("add") or [], op.get("remove") or [], op.get("main"))
+            if not add and not remove:
+                return _state(data, last)
+            _log(data, who, ", ".join(x for x in (add and "added " + ", ".join(add), remove and "removed " + ", ".join(remove)) if x), t["id"])
+        elif kind == "topic_delete":  # subtopics move up to the parent; papers and ideas just lose the topic
+            topics = data.setdefault("topics", [])
+            t = core._find(topics, op["id"])
+            for x in topics:
+                if x.get("parent") == t["id"]:
+                    x["parent"] = t.get("parent", "")
+            for x in papers + data.get("ideas", []):
+                if t["id"] in x.get("topics", []):
+                    x["topics"].remove(t["id"])
+            topics.remove(t)
+            _log(data, who, f"deleted topic “{t['title'][:90]}”", t["id"])
         elif kind == "note":
-            p = core._find(papers + data.setdefault("ideas", []), op["id"])
+            p = core._find(papers + data.setdefault("ideas", []) + data.setdefault("topics", []), op["id"])
             text = op["text"].strip()
             if not text:
                 raise ValueError("empty note")
@@ -322,6 +410,29 @@ def apply_op(op, who="me"):
         data["meta"]["updated_by"] = who
         save(data)
         return _state(data, last)
+
+
+def _place(data, tid, add, remove, main=False):
+    """Add/remove a topic on papers (by id). main=True puts it first (the paper's main topic). Returns the ids changed."""
+    papers = data["papers"]
+    add, remove = [x.upper() for x in core._as_list(add)], [x.upper() for x in core._as_list(remove)]
+    for x in add + remove:
+        core._find(papers, x)
+    done_add, done_rm = [], []
+    for p in papers:
+        ts = p.setdefault("topics", [])
+        if p["id"] in add and (tid not in ts or (main and ts[0] != tid)):
+            if tid in ts:
+                ts.remove(tid)
+            ts.insert(0, tid) if main else ts.append(tid)
+            done_add.append(p["id"])
+        elif p["id"] in remove and tid in ts:
+            ts.remove(tid)
+            done_rm.append(p["id"])
+        else:
+            continue
+        p["updated"] = core.now()
+    return done_add, done_rm
 
 
 def _state(data, last=None):
@@ -339,6 +450,84 @@ def get(pid):
 
 def get_idea(iid):
     return core._find(load().get("ideas", []), iid)
+
+
+def topic_context(tid, brief=False):
+    """Everything an agent needs to dig into one direction, as Markdown: where the topic sits (ancestors,
+    siblings, subtopics), its position and open questions, the full card of every paper in it (main topic first),
+    and the ideas linked to it or built on its papers."""
+    data = load()
+    topics = data.get("topics", [])
+    by = {t["id"]: t for t in topics}
+    t = core._find(topics, tid.upper())
+    tree = subtree(data, t["id"])
+    out = [f"# {t['id']} {t['title']}"]
+    path = [by[x] for x in reversed(_ancestors(data, t["id"]))]
+    if path:
+        out.append("Inside: " + " › ".join(f"{x['id']} {x['title']}" for x in path))
+    for x in path:
+        if x.get("position"):
+            out += [f"\n## Parent {x['id']} {x['title']}", x["position"]]
+    for k, h in (("position", "Position in the field"), ("questions", "Open questions")):
+        if t.get(k):
+            out += [f"\n## {h}", t[k]]
+    for t2 in t.get("notes", []):
+        out.append(f"\n[{t2['at'][:16]} {t2['who']}] {t2['text']}")
+    kids = [x for x in topics if x.get("parent") == t["id"]]
+    sibs = [x for x in topics if x.get("parent", "") == t.get("parent", "") and x["id"] != t["id"]]
+    count = lambda x: sum(1 for p in data["papers"] if set(p.get("topics", [])) & set(subtree(data, x)))
+    for label, xs in (("Subtopics", kids), ("Neighbouring topics", sibs)):
+        if xs:
+            out.append(f"\n## {label}")
+            out += [f"- {x['id']} {x['title']} ({count(x['id'])} papers)" + (f": {_first_line(x.get('position'))}" if x.get("position") else "") for x in xs]
+    ps = [p for p in data["papers"] if set(p.get("topics", [])) & set(tree)]
+    ps.sort(key=lambda p: (p["topics"][0] not in tree, p.get("year") or 0))
+    out.append(f"\n## Papers ({len(ps)}; main topic here first, then oldest first)")
+    for p in ps:
+        c = p.get("card") or {}
+        where = "main" if p["topics"][0] in tree else "also " + ", ".join(p["topics"][:1])
+        short = f"{p['short']}: " if p.get("short") and not p["title"].startswith(p["short"]) else ""
+        head = f"\n### {p['id']} {short}{p['title']} ({_authors_short(p)} {p.get('year') or ''}, {p.get('venue') or '?'}) [{where}; {p.get('reading')}]"
+        out.append(head)
+        if c.get("tldr"):
+            out.append(c["tldr"])
+        elif p.get("abstract"):
+            out.append("(no card) " + p["abstract"])
+        if p.get("summary"):
+            out += ["**User's summary:** " + p["summary"]]
+        if not brief:
+            for k in CARD_TEXT[1:]:
+                if c.get(k):
+                    out += [f"**{k}:** {c[k]}"]
+            for k in CARD_LISTS:
+                if c.get(k):
+                    out += [f"**{k}:** {', '.join(c[k])}"]
+            for n in p.get("notes", []):
+                out.append(f"[note {n['at'][:10]} {n['who']}] {n['text']}")
+    pids = {p["id"] for p in ps}
+    filed = [i for i in data.get("ideas", []) if set(i.get("topics", [])) & set(tree)]
+    citing = [i for i in data.get("ideas", []) if i not in filed and set(i.get("builds_on", [])) & pids]
+    line = lambda i: f"- {i['id']} [{i['status']}] {i['title']}" + (f" (builds on {', '.join(i['builds_on'])})" if i.get("builds_on") else "")
+    if filed:
+        out.append("\n## Ideas in this topic")
+        for i in filed:
+            out.append(line(i))
+            if not brief and i.get("pitch"):
+                out.append("  " + i["pitch"].replace("\n", "\n  "))
+    if citing:
+        out.append("\n## Other ideas that build on these papers")
+        out += [line(i) for i in citing]
+    return "\n".join(out) + "\n"
+
+
+def _first_line(s):
+    s = (s or "").strip().split("\n")[0]
+    return s[:160] + ("…" if len(s) > 160 else "")
+
+
+def _authors_short(p):
+    a = p.get("authors") or []
+    return (a[0].split()[-1] + (" et al." if len(a) > 1 else "")) if a else "?"
 
 
 # ---------- PDFs ----------
@@ -684,15 +873,17 @@ def _terms(q):
     return [t.lower() for t in re.findall(r'"([^"]+)"|(\S+)', q) for t in t if t]
 
 
-def grep(q, ids=None, project="", limit=40, width=150):
+def grep(q, ids=None, project="", limit=40, width=150, topic=""):
     """Search full text (per page) plus each paper's title/abstract/summary/card/notes.
     A page matches when it has every term; quoted phrases stay together. Ranked by hits."""
     terms = _terms(q)
     if not terms:
         raise ValueError("empty search")
-    hits = []
-    for p in load()["papers"]:
-        if ids and p["id"] not in ids or project and project not in p.get("projects", []):
+    hits, data = [], load()
+    tree = set(subtree(data, topic.upper())) if topic else None
+    for p in data["papers"]:
+        if ids and p["id"] not in ids or project and project not in p.get("projects", []) \
+                or tree and not tree & set(p.get("topics", [])):
             continue
         meta = " ".join([p["title"], p.get("short", ""), p.get("abstract", ""), p.get("summary", ""),
                          json.dumps(p.get("card", {}), ensure_ascii=False), " ".join(n["text"] for n in p.get("notes", []))])

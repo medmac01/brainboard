@@ -5,7 +5,9 @@ one your open items (with priorities and % progress), the decisions waiting on y
 you're running (setup, results, outcome), a brain-dump inbox and a notes thread on every item and experiment.
 Next to the projects sits a **paper library** shared by all of them: PDFs with extracted full text, metadata
 looked up on arXiv/Semantic Scholar/Crossref, BibTeX in and out, and a structured *card* per paper that agents
-write after reading it, so the library can be used as context for brainstorming. Ideas that come out of it live
+write after reading it, so the library can be used as context for brainstorming. A **topic map** places the papers
+in their field (a tree of research directions, each with its position in the literature and open problems), so
+you and an agent can dive into one direction with all its papers loaded (`topic-context`). Ideas that come out of it live
 next to the papers (pitch, open questions, papers they build on, raw → promising → pursuing) and can be turned into
 items or experiments in a project. AI agents (Claude Code, Codex, …) use the same board through a CLI and an
 installable skill, so the board is the shared interface between you and them.
@@ -77,6 +79,7 @@ python3 brainboard/cli.py paper-add arxiv:2401.12345 --projects thesis   # or --
 python3 brainboard/cli.py papers | show P03 | paper-text P03 --pages 2-4 | grep '"query graph" LLM'
 python3 brainboard/cli.py paper-card P03 --file card.json | paper-refresh | -p thesis bib > refs.bib
 python3 brainboard/cli.py -p thesis idea-add "Title" --pitch "…" --builds-on P17,P18 | ideas | idea-promote I03 --as experiment
+python3 brainboard/cli.py topics --papers | topic-add "Title" --parent C03 --papers P20,P22 | topic-papers C05 P31 | topic-context C05
 ```
 Which project? `-p`, then `$BRAINBOARD_PROJECT`, then a `.brainboard` file (one line, the slug) in the cwd or a
 parent, then the config default (`cli.py use SLUG`), then the only active project. Remote boards: `BRAINBOARD_URL`
@@ -91,10 +94,11 @@ results, related item ids, started, ended, notes[]) · `thoughts[]` · `activity
 
 `<home>/library/library.json` = `papers[]` (id P…, title, short, authors, year, venue, doi, arxiv, url, abstract,
 bibkey, tags, projects, reading to-read/skimmed/read/key, summary, card{tldr, problem, approach, contributions,
-evaluation, limitations, gaps, questions, datasets[], metrics[]}, notes[], pdf, pages) · `activity[]`; the PDFs
+evaluation, limitations, gaps, questions, datasets[], metrics[]}, topics (first = main), notes[], pdf, pages) · `activity[]`; the PDFs
 and their extracted text sit next to it in `pdf/` and `text/`. `ideas[]` (id I…, title, pitch, questions, builds_on paper ids,
-projects, tags, status raw/promising/pursuing/parked/dropped, promoted [{project, id}], notes[]).
+projects, tags, topics, status raw/promising/pursuing/parked/dropped, promoted [{project, id}], notes[]). `topics[]` (id C…,
+title, parent topic id, position, questions, notes[]).
 
 HTTP API: `GET /api/library`, `POST /api/library/op|upload|import|bib|refresh`, `GET /api/library/pdf|text/<id>`,
-`GET /api/library/grep|bib`; `GET /api/projects`, `POST /api/projects` (`create`/`delete`), `GET /api/p/<slug>/state|version`,
+`GET /api/library/grep|bib`, `GET /api/library/context/<C id>`; `GET /api/projects`, `POST /api/projects` (`create`/`delete`), `GET /api/p/<slug>/state|version`,
 `POST /api/p/<slug>/op`.

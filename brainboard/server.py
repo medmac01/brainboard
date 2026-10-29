@@ -33,7 +33,8 @@ API
   POST /api/library/refresh          {"id": "P03"} looks metadata up again, fills what's missing
   GET  /api/library/pdf/<id>         the PDF
   GET  /api/library/text/<id>?pages=3-5   extracted text with page markers
-  GET  /api/library/grep?q=…&project=…&limit=…
+  GET  /api/library/grep?q=…&project=…&topic=C03&limit=…
+  GET  /api/library/context/<C id>?brief=1   a topic's context pack (Markdown) for deep dives
   GET  /api/library/bib?ids=P01,P02  (or ?project=slug, or nothing for all) → BibTeX
   GET  /api/config                   {"voice": bool, "asr_model": …}
   POST /api/transcribe               raw audio body (Content-Type: audio/…) → {"text": …}
@@ -69,6 +70,7 @@ ASR_LANGUAGE = os.environ.get("BRAINBOARD_ASR_LANGUAGE", "")
 AUDIO_EXT = {"audio/webm": "webm", "audio/ogg": "ogg", "audio/mp4": "m4a", "audio/mpeg": "mp3",
              "audio/wav": "wav", "audio/x-wav": "wav", "audio/aac": "aac", "audio/flac": "flac"}
 LIB_FILE_RE = re.compile(r"^/api/library/(pdf|text)/([PI]\d{2,5})$")
+LIB_CTX_RE = re.compile(r"^/api/library/context/(C\d{2,5})$")
 PROJECT_RE = re.compile(r"^/api/p/([a-z0-9][a-z0-9-]{0,47})/(state|version|op)$")
 
 
@@ -207,7 +209,8 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/api/library/version":
                 return self._send(200, {"version": library.version()})
             if path == "/api/library/grep":
-                hits = library.grep(q.get("q", ""), project=q.get("project", ""), limit=int(q.get("limit", 40)))
+                hits = library.grep(q.get("q", ""), project=q.get("project", ""), limit=int(q.get("limit", 40)),
+                                    topic=q.get("topic", ""))
                 return self._send(200, {"hits": hits})
             if path == "/api/library/bib":
                 ps = library.load()["papers"]
@@ -215,6 +218,9 @@ class Handler(BaseHTTPRequestHandler):
                 ps = [p for p in ps if (not ids or p["id"] in ids)
                       and (not q.get("project") or q["project"] in p.get("projects", []))]
                 return self._send(200, library.bibtex(ps).encode(), "text/plain")
+            m = LIB_CTX_RE.match(path)
+            if m:
+                return self._send(200, library.topic_context(m.group(1), bool(q.get("brief"))).encode(), "text/plain")
             m = LIB_FILE_RE.match(path)
             if m and m.group(1) == "text":
                 return self._send(200, library.text(m.group(2), q.get("pages", "")))

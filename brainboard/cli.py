@@ -36,6 +36,12 @@ Paper library (shared by all projects; P ids work with show/set/note too)
   python3 brainboard/cli.py -p thesis idea-add "Hunt generated variants" --pitch "…" --builds-on P17,P18
   python3 brainboard/cli.py -p thesis ideas      # then: set I03 status=promising · idea-promote -p thesis I03
 
+Topics map the field (C ids, a tree; a paper's first topic is its main one)
+  python3 brainboard/cli.py topics                             # the tree with paper counts, and unsorted papers
+  python3 brainboard/cli.py topic-add "Learned query-graph matching" --parent C03 --papers P20,P22 --position "…"
+  python3 brainboard/cli.py topic-papers C05 P31 P23 --main    # put papers in a topic (--remove takes them out)
+  python3 brainboard/cli.py topic-context C05                  # context pack for a deep dive: cards, neighbours, ideas
+
 Author defaults to "claude"; override with --who or BRAINBOARD_WHO.
 """
 import argparse
@@ -177,10 +183,17 @@ def lib_text(pid, pages):
     return library.text(pid, pages)
 
 
-def lib_grep(q, project, limit):
+def lib_grep(q, project, limit, topic=""):
     if URL:
-        return _http("/api/library/grep?" + urllib.parse.urlencode({"q": q, "project": project or "", "limit": limit}), timeout=60)["hits"]
-    return library.grep(q, project=project or "", limit=limit)
+        return _http("/api/library/grep?" + urllib.parse.urlencode({"q": q, "project": project or "", "limit": limit,
+                                                                    "topic": topic or ""}), timeout=60)["hits"]
+    return library.grep(q, project=project or "", limit=limit, topic=topic or "")
+
+
+def lib_context(tid, brief):
+    if URL:
+        return _http(f"/api/library/context/{tid.upper()}" + ("?brief=1" if brief else ""), parse=False).decode()
+    return library.topic_context(tid, brief)
 
 
 def lib_pdf(pid):
@@ -488,13 +501,17 @@ def _lib_fields(a):
 
 
 def cmd_papers(a):
-    ps = lib_load()["papers"]
+    lib = lib_load()
+    ps = lib["papers"]
     if a.project:
         ps = [p for p in ps if a.project in p.get("projects", [])]
     if a.tag:
         ps = [p for p in ps if a.tag in p.get("tags", [])]
     if a.reading:
         ps = [p for p in ps if p.get("reading") in a.reading.split(",")]
+    if a.topic:
+        tree = set(library.subtree(lib, a.topic.upper()))
+        ps = [p for p in ps if tree & set(p.get("topics", []))]
     if a.q:
         ql = a.q.lower()
         ps = [p for p in ps if ql in " ".join([p["title"], p.get("short", ""), " ".join(p.get("tags", [])),
@@ -504,14 +521,14 @@ def cmd_papers(a):
     for p in ps:
         print(pline(p))
     if not ps:
-        print("no papers" + (" match" if (a.q or a.project or a.tag or a.reading) else " yet; add some with paper-add"))
+        print("no papers" + (" match" if (a.q or a.project or a.tag or a.reading or a.topic) else " yet; add some with paper-add"))
 
 
 def show_paper(p, as_json=False):
     if as_json:
         return print(json.dumps(p, indent=1, ensure_ascii=False))
     print(pline(p))
-    for k in ("authors", "venue", "doi", "arxiv", "url", "bibkey", "tags", "projects"):
+    for k in ("authors", "venue", "doi", "arxiv", "url", "bibkey", "tags", "projects", "topics"):
         if p.get(k):
             print(f"  {k:<9} {', '.join(p[k]) if isinstance(p[k], list) else p[k]}")
     if p.get("pdf"):
@@ -614,7 +631,7 @@ def cmd_paper_delete(a):
 
 
 def cmd_grep(a):
-    hits = lib_grep(a.query, a.project, a.n)
+    hits = lib_grep(a.query, a.project, a.n, a.topic)
     for h in hits:
         where = "meta" if h["page"] == "meta" else f"p.{h['page']}"
         print(f"{h['id']:<5} {where:<5} ×{h['count']:<3} {h['short'][:28]:<28}  …{h['snippet']}…")
@@ -631,7 +648,7 @@ def cmd_bib(a):
     sys.stdout.write(library.bibtex(ps))
 
 
-LIB_ID = lambda x: bool(x) and x[0] in "PI" and x[1:].isdigit()
+LIB_ID = lambda x: bool(x) and x[0] in "PIC" and x[1:].isdigit()
 
 
 def iline(i):
@@ -644,7 +661,7 @@ def show_idea(i, as_json=False):
     if as_json:
         return print(json.dumps(i, indent=1, ensure_ascii=False))
     print(iline(i))
-    for k in ("projects", "tags"):
+    for k in ("projects", "tags", "topics"):
         if i.get(k):
             print(f"  {k:<9} {', '.join(i[k])}")
     print(f"  {'by':<9} {i.get('by', '?')}, {i.get('added', '')[:10]}")
@@ -673,7 +690,7 @@ def cmd_ideas(a):
 def cmd_idea_add(a):
     f = {"title": a.title}
     for k, v in (("pitch", a.pitch), ("questions", a.questions), ("builds_on", a.builds_on),
-                 ("projects", a.projects or a.project), ("tags", a.tags), ("status", a.status)):
+                 ("projects", a.projects or a.project), ("tags", a.tags), ("status", a.status), ("topics", a.topics)):
         if v:
             f[k] = v
     for k in ("pitch", "questions"):  # shells pass "\n" literally inside double quotes
@@ -692,14 +709,100 @@ def cmd_idea_promote(a):
     print(f"{a.id} → {i['promoted'][-1]['project']}/{i['promoted'][-1]['id']}")
 
 
+def tline(t, n):
+    return f"{t['id']:<5} {t['title']}  ({n} paper{'' if n == 1 else 's'})"
+
+
+def cmd_topics(a):
+    data = lib_load()
+    topics, ps = data.get("topics", []), data["papers"]
+    if a.project:
+        ps = [p for p in ps if a.project in p.get("projects", [])]
+    if a.json:
+        return print(json.dumps(topics, indent=1, ensure_ascii=False))
+
+    def walk(parent, depth):
+        for t in [t for t in topics if t.get("parent", "") == parent]:
+            tree = set(library.subtree(data, t["id"]))
+            mine = [p["id"] for p in ps if tree & set(p.get("topics", []))]
+            print("  " * depth + tline(t, len(mine)))
+            if a.papers:
+                direct = [p for p in ps if t["id"] in p.get("topics", [])]
+                for p in direct:
+                    star = "*" if p["topics"][0] == t["id"] else " "
+                    print("  " * depth + f"      {star}{p['id']} {p.get('short') or p['title'][:60]}")
+            walk(t["id"], depth + 1)
+    walk("", 0)
+    loose = [p["id"] for p in ps if not p.get("topics")]
+    if not topics:
+        print("no topics yet; add one with topic-add")
+    if loose:
+        print(f"\nunsorted ({len(loose)}): {', '.join(loose)}")
+    if a.papers:
+        print("\n* = the paper's main topic")
+
+
+def show_topic(data, t, as_json=False):
+    if as_json:
+        return print(json.dumps(t, indent=1, ensure_ascii=False))
+    tree = set(library.subtree(data, t["id"]))
+    ps = [p for p in data["papers"] if tree & set(p.get("topics", []))]
+    print(tline(t, len(ps)))
+    path = [core._find(data["topics"], x) for x in reversed(library._ancestors(data, t["id"]))]
+    if path:
+        print("  inside   " + " › ".join(f"{x['id']} {x['title']}" for x in path))
+    kids = [x for x in data["topics"] if x.get("parent") == t["id"]]
+    if kids:
+        print("  subtopics " + ", ".join(f"{x['id']} {x['title']}" for x in kids))
+    for k in ("position", "questions"):
+        if t.get(k):
+            print(f"\n  {k.upper()}\n" + wrap(t[k]))
+    if ps:
+        print("\n  PAPERS  (topic-context " + t["id"] + " for the full cards)")
+        for p in ps:
+            print("    " + pline(p))
+    for n in t.get("notes", []):
+        print(f"\n  [{n['at'][:16]} {n['who']}]\n" + wrap(n["text"]))
+
+
+def cmd_topic_add(a):
+    f = {"title": a.title}
+    for k, v in (("parent", a.parent), ("position", a.position), ("questions", a.questions)):
+        if v:
+            f[k] = v.replace("\\n", "\n")
+    st = lib_op({"op": "topic_add", "fields": f, "papers": a.papers or [], "main": a.main}, a.who)
+    print(tline(core._find(st["topics"], st["last"]), len(core._as_list(a.papers or ""))))
+
+
+def cmd_topic_papers(a):
+    op = {"op": "topic_papers", "id": a.id.upper(), "main": a.main}
+    op["remove" if a.remove else "add"] = a.ids
+    lib_op(op, a.who)
+    print(f"{'removed from' if a.remove else 'added to'} {a.id.upper()}: {', '.join(a.ids)}")
+
+
+def cmd_topic_context(a):
+    sys.stdout.write(lib_context(a.id, a.brief))
+
+
+def cmd_topic_delete(a):
+    lib_op({"op": "topic_delete", "id": a.id.upper()}, a.who)
+    print(f"deleted {a.id.upper()} (subtopics moved up; papers keep their other topics)")
+
+
 def lib_route(a):
-    """show/set/note with a P or I id go to the library instead of a project."""
+    """show/set/note with a P, I or C id go to the library instead of a project."""
     if a.cmd == "show":
         data = lib_load()
+        if a.id.startswith("C"):
+            return show_topic(data, core._find(data.get("topics", []), a.id), a.json)
         if a.id.startswith("I"):
             return show_idea(core._find(data.get("ideas", []), a.id), a.json)
         return show_paper(core._find(data["papers"], a.id), a.json)
     if a.cmd == "set":
+        if a.id.startswith("C"):
+            st = lib_op({"op": "topic_update", "id": a.id, "fields": _paper_set_fields(a.pairs)}, a.who)
+            return print(tline(core._find(st["topics"], a.id), "?"))
         if a.id.startswith("I"):
             st = lib_op({"op": "idea_update", "id": a.id, "fields": _paper_set_fields(a.pairs)}, a.who)
             return print(iline(core._find(st["ideas"], a.id)))
@@ -710,7 +813,8 @@ def lib_route(a):
 
 GLOBAL_CMDS = {"projects", "project_add", "use", "config", "papers", "paper_add", "paper_set", "paper_card",
                "paper_text", "paper_refresh", "paper_pdf", "paper_attach", "paper_delete", "grep", "bib",
-               "ideas", "idea_add", "idea_promote"}
+               "ideas", "idea_add", "idea_promote", "topics", "topic_add", "topic_papers", "topic_context",
+               "topic_delete"}
 
 
 def main():
@@ -753,6 +857,7 @@ def main():
     p = sub.add_parser("papers", help="list the paper library")
     p.add_argument("-q", help="filter titles, authors, tags, venue"); p.add_argument("--tag")
     p.add_argument("--reading", help="to-read,skimmed,read,key"); p.add_argument("--json", action="store_true")
+    p.add_argument("--topic", help="a topic id (C03); includes its subtopics")
     p = sub.add_parser("paper-add", help="add papers: arXiv ids/DOIs/links, --pdf files, or --bib file")
     p.add_argument("refs", nargs="*"); p.add_argument("--pdf", nargs="+"); p.add_argument("--bib")
     p.add_argument("--tags"); p.add_argument("--projects", help="project slugs, comma-separated")
@@ -771,7 +876,7 @@ def main():
     p = sub.add_parser("paper-attach", help="attach a PDF to an existing paper"); p.add_argument("id"); p.add_argument("file")
     p = sub.add_parser("paper-delete"); p.add_argument("id")
     p = sub.add_parser("grep", help="full-text search across the library"); p.add_argument("query")
-    p.add_argument("-n", type=int, default=30)
+    p.add_argument("-n", type=int, default=30); p.add_argument("--topic", help="only papers in this topic (C03)")
     p = sub.add_parser("bib", help="BibTeX for papers (ids, --project, or all)"); p.add_argument("ids", nargs="*")
     p = sub.add_parser("ideas", help="list research ideas (-p filters by project)")
     p.add_argument("--status", help=",".join(library.IDEA_STATUSES)); p.add_argument("--json", action="store_true")
@@ -780,9 +885,23 @@ def main():
     p.add_argument("--questions", help="Markdown: open questions / first experiment")
     p.add_argument("--builds-on", dest="builds_on", help="paper ids, comma-separated, e.g. P17,P18")
     p.add_argument("--projects", help="project slugs (default: -p)"); p.add_argument("--tags")
+    p.add_argument("--topics", help="topic ids the idea belongs to, e.g. C05")
     p.add_argument("--status", choices=library.IDEA_STATUSES)
     p = sub.add_parser("idea-promote", help="turn an idea into an item (or --as experiment) in project -p")
     p.add_argument("id"); p.add_argument("--as", dest="as_", choices=["item", "experiment"], default="item")
+    p = sub.add_parser("topics", help="the topic tree with paper counts (-p counts one project's papers)")
+    p.add_argument("--papers", action="store_true", help="list each topic's papers"); p.add_argument("--json", action="store_true")
+    p = sub.add_parser("topic-add", help="add a topic (a research direction); --parent nests it")
+    p.add_argument("title"); p.add_argument("--parent", help="parent topic id, e.g. C03")
+    p.add_argument("--position", help="Markdown: what this direction assumes and asks, its lineage, how it differs from neighbours")
+    p.add_argument("--questions", help="Markdown: open problems in this direction")
+    p.add_argument("--papers", help="paper ids to put in it, comma-separated"); p.add_argument("--main", action="store_true", help="make it their main topic")
+    p = sub.add_parser("topic-papers", help="put papers in a topic (or --remove them)")
+    p.add_argument("id"); p.add_argument("ids", nargs="+"); p.add_argument("--remove", action="store_true")
+    p.add_argument("--main", action="store_true", help="make it the papers' main topic")
+    p = sub.add_parser("topic-context", help="context pack for a deep dive: position, neighbours, full cards, ideas")
+    p.add_argument("id"); p.add_argument("--brief", action="store_true", help="tl;drs only")
+    p = sub.add_parser("topic-delete"); p.add_argument("id")
     p = sub.add_parser("thought"); p.add_argument("text")
     p = sub.add_parser("thoughts"); p.add_argument("--all", action="store_true", help="include handled ones")
     a = ap.parse_args()
