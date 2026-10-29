@@ -35,6 +35,7 @@ API
   GET  /api/library/text/<id>?pages=3-5   extracted text with page markers
   GET  /api/library/grep?q=…&project=…&topic=C03&limit=…
   GET  /api/library/context/<C id>?brief=1   a topic's context pack (Markdown) for deep dives
+  GET  /api/library/find?q=…&topic=C03&project=…&k=8[&format=md&full=1]   papers relevant to a question
   GET  /api/library/bib?ids=P01,P02  (or ?project=slug, or nothing for all) → BibTeX
   GET  /api/config                   {"voice": bool, "asr_model": …}
   POST /api/transcribe               raw audio body (Content-Type: audio/…) → {"text": …}
@@ -212,6 +213,11 @@ class Handler(BaseHTTPRequestHandler):
                 hits = library.grep(q.get("q", ""), project=q.get("project", ""), limit=int(q.get("limit", 40)),
                                     topic=q.get("topic", ""))
                 return self._send(200, {"hits": hits})
+            if path == "/api/library/find":
+                args = (q.get("q", ""), q.get("topic", ""), q.get("project", ""), int(q.get("k", 8)))
+                if q.get("format") == "md":
+                    return self._send(200, library.find_md(*args, full=bool(q.get("full"))).encode(), "text/plain")
+                return self._send(200, library.find(*args))
             if path == "/api/library/bib":
                 ps = library.load()["papers"]
                 ids = [x for x in q.get("ids", "").split(",") if x]

@@ -96,6 +96,8 @@ bb topics --papers                           # the tree, paper counts, each topi
 bb topic-context C05                         # context pack for a deep dive: position, parents, neighbours,
                                              #   every paper's full card and notes, linked ideas (--brief: tl;drs)
 bb papers --topic C05 · bb grep --topic C05 '"order embedding"'   # include subtopics
+bb find "a research question in plain words" [--topic C05]  # papers ranked by relevance, page-cited passages
+                                             #   (the brainboard-library skill covers answering research questions)
 bb topic-add "Title" --parent C03 --papers P20,P22 --main --position "…" --questions "- …"
 bb topic-papers C05 P31 P23 [--main | --remove]
 bb paper-set P31 topics=C05,C01              # or set the whole list (first = main); a card file may carry topics too

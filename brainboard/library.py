@@ -14,6 +14,7 @@ import fcntl
 import hashlib
 import html
 import json
+import math
 import os
 import re
 import shutil
@@ -903,6 +904,207 @@ def grep(q, ids=None, project="", limit=40, width=150, topic=""):
                              "count": sum(low.count(t) for t in terms), "snippet": s})
     hits.sort(key=lambda h: (-h["count"]))
     return hits[:limit]
+
+
+# ---------- finding relevant papers for a question ----------
+# BM25 over chunks: one "card" chunk per paper (title, abstract, card, summary, notes) and overlapping windows of
+# each page's text. Reference-list windows are dropped. A paper's score = its card chunk + its best two passages;
+# topics are scored by the papers that match. The index is rebuilt when the library's version changes.
+
+STOP = set("""a an the and or of to in on for with by from at as is are was were be been being it its this that these those
+which what who whom whose how why when where do does did can could should would may might will shall not no nor than then
+there their they them we our you your i me my he she his her into over under about between through during before after
+above below up down out off again further once here all any both each few more most other some such only own same so too
+very just also et al vs via using use used based paper papers work approach approaches method methods propose proposed
+show shows shown result results e g i e eg ie fig figure table section one two three new""".split())
+_IDX = {}
+
+
+def _stem(w):
+    if len(w) > 5 and w.endswith("ies"):
+        return w[:-3] + "y"
+    if len(w) > 6 and w.endswith("ing"):
+        return w[:-3]
+    if len(w) > 5 and w.endswith("ed") and not w.endswith("eed"):
+        return w[:-2]
+    if len(w) > 4 and w.endswith("s") and not w.endswith(("ss", "us", "is")):
+        return w[:-1]
+    return w
+
+
+def _toks(text):
+    return [_stem(w) for w in re.findall(r"[a-z0-9]+(?:[&'][a-z0-9]+)*", text.lower()) if w not in STOP and len(w) > 1]
+
+
+def _refs_like(chunk):
+    return len(re.findall(r"\b(19|20)\d\d\b", chunk)) >= 6 and len(re.findall(r"et al\.|Proceedings|In Proc|pp\.|arXiv:", chunk)) >= 3
+
+
+def _chunks(p):
+    c = p.get("card") or {}
+    card = " ".join([p["title"], p.get("short", ""), " ".join(p.get("tags", [])), p.get("abstract", ""), p.get("summary", ""),
+                     " ".join(" ".join(v) if isinstance(v, list) else str(v) for k, v in c.items() if k not in ("by", "at")),
+                     " ".join(n["text"] for n in p.get("notes", []))])
+    out = [("card", card)]
+    if p.get("pdf"):
+        try:
+            pages = pages_of(p["id"])
+        except KeyError:
+            pages = []
+        for k, pg in enumerate(pages):
+            words = re.sub(r"-\n(?=[a-z])", "", pg).split()
+            for i in range(0, max(1, len(words) - 40), 120):
+                w = " ".join(words[i:i + 180])
+                if len(w) > 200 and not _refs_like(w):
+                    out.append(((k + 1, i), w))   # (page, first word of the window)
+    return out
+
+
+def _index(data):
+    key = version()
+    if _IDX.get("key") == key and key != "0":
+        return _IDX
+    docs = []   # (paper id, where, raw text, token counts, length)
+    df = {}
+    for p in data["papers"]:
+        for where, body in _chunks(p):
+            ts = _toks(body)
+            tf = {}
+            for t in ts:
+                tf[t] = tf.get(t, 0) + 1
+            for t in tf:
+                df[t] = df.get(t, 0) + 1
+            docs.append((p["id"], where, body, tf, len(ts)))
+    avg = sum(d[4] for d in docs) / max(1, len(docs))
+    _IDX.clear()
+    _IDX.update(key=key, docs=docs, df=df, n=len(docs), avg=avg)
+    return _IDX
+
+
+def _snippet(body, terms, width=420):
+    """The window of `body` with the most distinct query terms."""
+    flat = re.sub(r"\s+", " ", body)
+    words = flat.split(" ")
+    best, at = -1, 0
+    for i in range(0, max(1, len(words) - 10), 8):
+        seg = {_stem(w.lower().strip(".,;:()[]\"'")) for w in words[i:i + 60]}
+        n = len(seg & terms)
+        if n > best:
+            best, at = n, i
+    s = " ".join(words[max(0, at - 5):])
+    return (s[:width].rsplit(" ", 1)[0] + "…") if len(s) > width else s
+
+
+def find(q, topic="", project="", k=8, passages=3):
+    """Papers most relevant to a natural-language question, with their best passages (page-cited) and the topics
+    they cluster in. Returns {"q", "papers": [{id, score, topics, passages: [{page, text}]}], "topics": [{id, score, papers}]}."""
+    data = load()
+    qt = _toks(q)
+    if not qt:
+        raise ValueError("ask something with a few content words")
+    idx = _index(data)
+    n, avg, df = idx["n"], idx["avg"], idx["df"]
+    allowed = {p["id"] for p in data["papers"] if not project or project in p.get("projects", [])}
+    if topic:
+        core._find(data.get("topics", []), topic.upper())
+        tree = set(subtree(data, topic.upper()))
+        allowed &= {p["id"] for p in data["papers"] if tree & set(p.get("topics", []))}
+    # each query word also matches longer/shorter forms that share its stem (leakage ~ leak, leaked), at 0.7
+    want = {}
+    for t in set(qt):
+        want[t] = 1.0
+        if len(t) >= 6:
+            pre = t[:max(4, len(t) - 3)]
+            for w in df:
+                if w != t and w.startswith(pre):
+                    want[w] = max(want.get(w, 0), .7)
+    idf = {t: wt * math.log(1 + (n - df.get(t, 0) + .5) / (df.get(t, 0) + .5)) for t, wt in want.items()}
+    phrases = [ph.lower() for ph in re.findall(r'"([^"]+)"', q)]
+    per = {}
+    for pid, where, body, tf, ln in idx["docs"]:
+        if pid not in allowed:
+            continue
+        s = 0.0
+        for t in idf:
+            f = tf.get(t, 0)
+            if f:
+                s += idf[t] * f * 2.2 / (f + 1.2 * (.25 + .75 * ln / avg))
+        if s and phrases:
+            low = re.sub(r"\s+", " ", body.lower())
+            s *= 1 + sum(.5 for ph in phrases if ph in low)
+        if s:
+            per.setdefault(pid, []).append((s, where, body))
+    terms = set(want)
+    by = {p["id"]: p for p in data["papers"]}
+    ranked = []
+    for pid, hits in per.items():
+        card = max([h[0] for h in hits if h[1] == "card"] or [0])
+        text = sorted([h for h in hits if h[1] != "card"], key=lambda h: -h[0])
+        score = 2 * card + sum(h[0] * w for h, w in zip(text, (1, .5)))   # cards are the curated reading: count double
+        picked = []
+        for h in text:   # windows overlap (180 words every 120): skip one that overlaps a window already picked
+            if not any(h[1][0] == w[0] and abs(h[1][1] - w[1]) < 180 for w, _ in picked):
+                picked.append((h[1], h[2]))
+                if len(picked) == passages:
+                    break
+        ranked.append({"id": pid, "score": round(score, 2), "topics": by[pid].get("topics", []),
+                       "passages": [{"page": w[0], "text": _snippet(b2, terms)} for w, b2 in picked]})
+    ranked.sort(key=lambda r: -r["score"])
+    top = ranked[:k]
+    if top:
+        hi = top[0]["score"]
+        top = [r for r in top if r["score"] >= hi * .15]   # drop the long tail of one-word matches
+    tscore = {}
+    for r in top:
+        for j, t in enumerate(r["topics"]):
+            x = tscore.setdefault(t, {"id": t, "score": 0.0, "papers": []})
+            x["score"] += r["score"] * (1 if j == 0 else .5)
+            x["papers"].append(r["id"])
+    topics = sorted(tscore.values(), key=lambda x: -x["score"])
+    for x in topics:
+        x["score"] = round(x["score"], 2)
+    return {"q": q, "topic": topic.upper(), "project": project, "papers": top, "topics": topics[:4]}
+
+
+def find_md(q, topic="", project="", k=8, full=False):
+    """find() as Markdown context to hand an agent or paste into a chat."""
+    data = load()
+    r = find(q, topic, project, k)
+    by, tby = {p["id"]: p for p in data["papers"]}, {t["id"]: t for t in data.get("topics", [])}
+    scope = " · ".join(x for x in (topic and f"topic {topic.upper()} {tby.get(topic.upper(), {}).get('title', '')}",
+                                     project and f"project {project}") if x)
+    out = [f"# Library context for: {q}", f"Scope: {scope or 'whole library'} · {len(r['papers'])} papers, ranked by relevance."
+           " Passages are quoted from the papers' extracted text; cite them as P12 p.7."]
+    if r["topics"]:
+        out.append("\n## Topics these papers sit in")
+        for x in r["topics"]:
+            t = tby.get(x["id"])
+            if t:
+                out.append(f"- {t['id']} {t['title']} ({', '.join(x['papers'])})" + (f": {_first_line(t.get('position'))}" if t.get("position") else ""))
+    if not r["papers"]:
+        out.append("\nNo paper matches. Try other words, drop the topic scope, or `bb grep` for exact phrases.")
+    for i, x in enumerate(r["papers"], 1):
+        p = by[x["id"]]
+        c = p.get("card") or {}
+        short = f"{p['short']}: " if p.get("short") and not p["title"].startswith(p["short"]) else ""
+        main = tby.get((p.get("topics") or [""])[0])
+        out.append(f"\n## {i}. {p['id']} {short}{p['title']}")
+        out.append(f"{_authors_short(p)} {p.get('year') or ''}, {p.get('venue') or '?'} · relevance {x['score']}"
+                   + (f" · topic {main['id']} {main['title']}" if main else "") + f" · {p.get('reading')}")
+        if c.get("tldr"):
+            out.append("**TL;DR:** " + c["tldr"])
+        if p.get("summary"):
+            out.append("**User's summary:** " + p["summary"])
+        if full:
+            for key in CARD_TEXT[1:]:
+                if c.get(key):
+                    out.append(f"**{key}:** {c[key]}")
+        for ps in x["passages"]:
+            out.append(f"> p.{ps['page']}: {ps['text']}")
+    if r["papers"]:
+        out.append("\nMore: `bb show P..` (full card), `bb paper-text P.. --pages N` (read around a passage), "
+                   + (f"`bb topic-context {r['topics'][0]['id']}` (the whole direction)" if r["topics"] else "`bb topics`") + ".")
+    return "\n".join(out) + "\n"
 
 
 # ---------- BibTeX ----------

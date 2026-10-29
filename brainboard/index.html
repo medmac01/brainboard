@@ -275,6 +275,15 @@ h2{font-size:12px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink3
 .ghit .snip{color:var(--ink2);font-size:12.5px;line-height:1.45}
 .ghit mark{background:color-mix(in srgb,var(--p2) 35%,transparent);color:inherit;border-radius:3px;padding:0 1px}
 .ghead2{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--line);font-size:13px;color:var(--ink2)}
+.ffind .ghead2{flex-wrap:wrap}
+.ffind .ftop{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:8px 12px;border-bottom:1px solid var(--line);font-size:12.5px;color:var(--ink3)}
+.ffind .fpaper+.fpaper{border-top:1px solid var(--line)}
+.ffind .fpass{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px;padding:3px 12px 3px 46px;align-items:baseline;cursor:pointer;color:var(--ink2);font-size:12.5px;line-height:1.45}
+.ffind .fpass:hover{color:var(--ink)}
+.ffind .fpass:last-child{padding-bottom:10px}
+.ffind mark{background:color-mix(in srgb,var(--p2) 35%,transparent);color:inherit;border-radius:3px;padding:0 1px}
+@media (max-width:640px){.ffind .fpass{padding-left:12px}}
+.tfindbar{display:flex;gap:8px;margin-top:14px}.tfindbar .searchbox{flex:1}
 .pacts{display:flex;gap:6px;flex-wrap:wrap;margin:2px 0 16px}
 .pacts .btn{text-decoration:none;color:var(--ink)}
 .cardsec{margin-top:14px}
@@ -606,14 +615,16 @@ body.in-project .proj-only{display:flex}
     <div id="lpapers">
     <div id="laddL"></div>
     <div class="filters">
-      <div class="searchbox"><svg class="ic"><use href="#i-search"/></svg><input class="search" id="lq" placeholder="Filter papers  (Enter: full text)"></div>
+      <div class="searchbox"><svg class="ic"><use href="#i-search"/></svg><input class="search" id="lq" placeholder="Filter papers, or ask a question  (Enter: full text · ⇧Enter: find relevant)"></div>
       <button class="btn small" id="lGrepBtn" title="Search inside the papers' full text"><svg class="ic sm"><use href="#i-file"/></svg>Full text</button>
+      <button class="btn small" id="lFindBtn" title="Rank papers by relevance to a question (uses the topic and project filters); copy the result as context for a chat"><svg class="ic sm"><use href="#i-spark"/></svg>Find relevant</button>
       <div class="seg" id="fRead"><button data-v="">All</button><button data-v="to-read">To read</button><button data-v="skimmed">Skimmed</button><button data-v="read">Read</button><button data-v="key">Key</button></div>
       <select class="sel" id="fLProj"></select>
       <select class="sel" id="fLTopic"></select>
       <select class="sel" id="fLTag"></select>
       <select class="sel" id="fLSort"><option value="added">Recently added</option><option value="year">Newest first</option><option value="title">Title</option></select>
     </div>
+    <div id="lfind"></div>
     <div id="lgrep"></div>
     <div class="card list" id="llist"></div>
     </div>
@@ -1600,7 +1611,7 @@ function renderLibrary(){
   const s=lu.sort||"added";
   list.sort(s==="year"?(a,b)=>(b.year||0)-(a.year||0):s==="title"?(a,b)=>(a.short||a.title).localeCompare(b.short||b.title):(a,b)=>(b.added||"").localeCompare(a.added||""));
   $("#llist").innerHTML=list.length?list.map(prowHTML).join(""):emptyHTML("book",ps.length?"No papers match.":"No papers yet. Add one by arXiv id or DOI, or drop PDFs here.");
-  renderGrep();
+  renderGrep(); renderFind();
 }
 function renderProjPapers(){
   if(!LB){ loadLib().then(()=>{ if(view==="project"&&curTab()==="papers") renderProjPapers() }).catch(e=>toast(e.message,"alert")); return }
@@ -1748,11 +1759,13 @@ document.addEventListener("click",e=>{
 });
 document.addEventListener("keydown",e=>{ const t=e.target;
   if(t.matches&&t.matches("[data-libref]")&&e.key==="Enter"){ e.preventDefault(); addRef(t,t.closest("[data-addbar]").dataset.addbar) }
-  if(t.id==="lq"&&e.key==="Enter"){ e.preventDefault(); runGrep() }
+  if(t.id==="lq"&&e.key==="Enter"){ e.preventDefault(); e.shiftKey?runFind($("#lq").value,"papers"):runGrep() }
+  if(t.id==="tFindQ"&&e.key==="Enter"){ e.preventDefault(); runFind(t.value,"topic") }
 });
 $("#lq").addEventListener("input",()=>{ renderLibrary() });
 $("#pq").addEventListener("input",renderProjPapers);
 $("#lGrepBtn").onclick=runGrep;
+$("#lFindBtn").onclick=()=>runFind($("#lq").value,"papers");
 $("#fRead").onclick=e=>{const b=e.target.closest("button");if(!b)return;ui.lib.read=b.dataset.v;persist();renderLibrary()};
 $("#fLProj").onchange=e=>{ui.lib.proj=e.target.value;persist();renderLibrary()};
 $("#fLTag").onchange=e=>{ui.lib.tag=e.target.value;persist();renderLibrary()};
@@ -1874,6 +1887,7 @@ document.addEventListener("click",e=>{
   const tsel=e.target.closest("[data-tsel]"); if(tsel){ ui.lib.topic=tsel.dataset.tsel; persist(); history.replaceState(null,"",libHash()); renderTopics(); window.scrollTo({top:Math.min(scrollY,$("#ltopics").offsetTop-80)}); return }
   const te=e.target.closest("[data-tedit]"); if(te){ openTopic(te.dataset.tedit); return }
   const tn=e.target.closest("[data-tnew]"); if(tn){ newTopic(tn.dataset.tnew); return }
+  if(e.target.closest("[data-tfind]")){ runFind($("#tFindQ").value,"topic"); return }
   if(e.target.closest("[data-tcopy]")){ navigator.clipboard.writeText($("#tPrompt").textContent).then(()=>toast("Prompt copied; paste it to your agent","copy"),er=>toast("Copy failed: "+er.message,"alert")); return }
 },true);
 $("#iq").addEventListener("input",renderIdeas);
@@ -1884,6 +1898,43 @@ $("#iboard").addEventListener("dragstart",e=>{const c=e.target.closest(".icard")
 $("#iboard").addEventListener("dragover",e=>{const c=e.target.closest("[data-icol]");if(c&&[...e.dataTransfer.types].includes("text/idea")){e.preventDefault();document.querySelectorAll("[data-icol]").forEach(x=>x.classList.toggle("over",x===c))}});
 $("#iboard").addEventListener("drop",e=>{const c=e.target.closest("[data-icol]");const id=e.dataTransfer.getData("text/idea");document.querySelectorAll("[data-icol]").forEach(x=>x.classList.remove("over"));
   if(c&&id){e.preventDefault();e.stopPropagation();const i=findIdea(id);if(i&&i.status!==c.dataset.icol)libApi({op:"idea_update",id,fields:{status:c.dataset.icol}})}});
+
+/* ---------- find relevant papers for a question (ranked, page-cited passages) ---------- */
+let findState = null;   // {q, where: "papers"|"topic", topic, project, loading, res}
+function findScope(where){
+  if(where==="topic") return {topic:ui.lib.topic&&findTopic(ui.lib.topic)?ui.lib.topic:"", project:""};
+  return {topic:ui.lib.ltopic&&ui.lib.ltopic!=="none"?ui.lib.ltopic:"", project:ui.lib.proj&&ui.lib.proj!=="none"?ui.lib.proj:""};
+}
+async function runFind(q,where){
+  q=(q||"").trim(); if(!q){ findState=null; renderFind(); toast("Type a question first","search"); return }
+  const sc=findScope(where);
+  findState={q,where,...sc,loading:true}; renderFind();
+  try{ const res=await http("/api/library/find?"+new URLSearchParams({q,k:10,...sc})); if(findState&&findState.q===q) findState=Object.assign(findState,{res,loading:false}) }
+  catch(e){ findState=null; toast(e.message,"alert") }
+  renderFind();
+}
+const findMdUrl = (full) => "/api/library/find?"+new URLSearchParams({q:findState.q,k:10,topic:findState.topic,project:findState.project,format:"md",...(full?{full:1}:{})});
+function renderFind(){
+  const pe=$("#lfind"), te=$("#tfind");
+  if(pe) pe.innerHTML=""; if(te) te.innerHTML="";
+  if(!findState) return;
+  const el=findState.where==="topic"?(findState.topic===ui.lib.topic?te:null):pe; if(!el) return;
+  const st=findState, terms=(st.q.match(/"([^"]+)"|\S+/g)||[]).map(x=>x.replace(/"/g,"")).filter(x=>x.length>3);
+  const scope=[st.topic&&findTopic(st.topic)?"in "+findTopic(st.topic).title:"",st.project?"project "+st.project:""].filter(Boolean).join(" · ")||"whole library";
+  const r=st.res;
+  el.innerHTML=`<div class="card list ffind" style="margin-bottom:14px"><div class="ghead2">${ic("spark","sm")}<span>Relevant to <b>${esc(st.q)}</b> <span class="muted">(${esc(scope)})</span></span>
+      <span class="muted">${st.loading?"ranking…":r.papers.length+" paper"+(r.papers.length===1?"":"s")}</span>
+      <span style="margin-left:auto;display:flex;gap:6px">${st.loading||!r.papers.length?"":`<button class="btn small primary" data-fcopy="">${ic("copy","sm")}Copy as context</button><button class="btn small" data-fcopy="full" title="Include each paper's whole card">${ic("copy","sm")}+ full cards</button><a class="btn small" href="${findMdUrl(false)}" target="_blank" rel="noopener">${ic("file","sm")}Text</a>`}
+      <button class="ghost" data-fclose>${ic("x","sm")}</button></span></div>
+    ${st.loading?"":r.papers.length?`${r.topics.length?`<div class="ftop">Clusters in ${r.topics.filter(x=>findTopic(x.id)).map(x=>`<span class="chip topic" data-opentopic="${x.id}" title="${esc(x.papers.join(", "))}">${esc(findTopic(x.id).title)} · ${x.papers.length}</span>`).join("")}</div>`:""}
+      ${r.papers.map(x=>{ const p=findPaper(x.id); if(!p) return ""; return `<div class="fpaper">${prowHTML(p)}${x.passages.map(ps=>`<div class="fpass" data-grephit="${p.id}" data-page="${ps.page}" title="Open the PDF at this page"><span class="chip tag">p.${ps.page}</span><span>${hl(ps.text,terms)}</span></div>`).join("")}</div>` }).join("")}`
+      :emptyHTML("search","Nothing relevant found. Try other words, or widen the scope (topic / project filters).")}</div>`;
+}
+document.addEventListener("click",e=>{
+  const c=e.target.closest("[data-fcopy]");
+  if(c&&findState){ e.stopPropagation(); fetch(findMdUrl(!!c.dataset.fcopy)).then(r=>r.text()).then(t=>navigator.clipboard.writeText(t)).then(()=>toast("Copied. Paste it into Claude, ChatGPT or Codex with your question","copy"),er=>toast("Copy failed: "+er.message+" (use Text instead)","alert")); return }
+  if(e.target.closest("[data-fclose]")){ e.stopPropagation(); findState=null; renderFind(); return }
+},true);
 
 /* ---------- topics: a map of the field (in the library) ---------- */
 const topics = () => (LB && LB.topics) || [];
@@ -1944,11 +1995,15 @@ Tell me how these papers relate (lineage, shared assumptions, where they disagre
       :emptyHTML("book","No papers in this topic yet. Open a paper and use “Put in a topic…”.")}</div>
     ${filed.length||citing.length?`<div class="sechead"><h2>${ic("bulb","sm")}Ideas</h2></div><div class="card list">${filed.map(irowHTML).join("")}
       ${citing.length?`<div class="tgroup" style="cursor:default">Other ideas building on these papers</div>${citing.map(irowHTML).join("")}`:""}</div>`:""}
-    <div class="sechead"><h2>${ic("bot","sm")}Deep dive with an agent</h2></div>
-    <div class="tdeep"><div class="muted" style="font-size:12.5px">Copy this to Claude or Codex. The context pack is everything the agent loads first.</div>
+    <div class="sechead"><h2>${ic("bot","sm")}Ask and deep-dive</h2></div>
+    <div class="tfindbar"><div class="searchbox"><svg class="ic"><use href="#i-search"/></svg><input class="search" id="tFindQ" placeholder="Ask within this topic, e.g. “how is robustness to variants evaluated?”" value="${esc(findState&&findState.where==="topic"&&findState.topic===t.id?findState.q:"")}"></div>
+      <button class="btn small" data-tfind>${ic("spark","sm")}Find relevant</button></div>
+    <div id="tfind" style="margin-top:12px"></div>
+    <div class="tdeep" style="margin-top:12px"><div class="muted" style="font-size:12.5px">Copy this to Claude or Codex. The context pack is everything the agent loads first.</div>
       <pre id="tPrompt">${esc(prompt)}</pre>
       <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn small primary" data-tcopy>${ic("copy","sm")}Copy prompt</button>
         <a class="btn small" href="/api/library/context/${t.id}" target="_blank" rel="noopener">${ic("file","sm")}View context pack</a></div></div>`;
+  renderFind();
 }
 async function newTopic(parent){
   const pt=findTopic(parent);

@@ -41,6 +41,7 @@ Topics map the field (C ids, a tree; a paper's first topic is its main one)
   python3 brainboard/cli.py topic-add "Learned query-graph matching" --parent C03 --papers P20,P22 --position "…"
   python3 brainboard/cli.py topic-papers C05 P31 P23 --main    # put papers in a topic (--remove takes them out)
   python3 brainboard/cli.py topic-context C05                  # context pack for a deep dive: cards, neighbours, ideas
+  python3 brainboard/cli.py find "how do hunters cope with attack variants?" --topic C03   # relevant papers + passages
 
 Author defaults to "claude"; override with --who or BRAINBOARD_WHO.
 """
@@ -188,6 +189,16 @@ def lib_grep(q, project, limit, topic=""):
         return _http("/api/library/grep?" + urllib.parse.urlencode({"q": q, "project": project or "", "limit": limit,
                                                                     "topic": topic or ""}), timeout=60)["hits"]
     return library.grep(q, project=project or "", limit=limit, topic=topic or "")
+
+
+def lib_find(q, topic, project, k, full, as_json):
+    if URL:
+        qs = {"q": q, "topic": topic or "", "project": project or "", "k": k}
+        if not as_json:
+            qs.update(format="md", full="1" if full else "")
+        r = _http("/api/library/find?" + urllib.parse.urlencode(qs), parse=as_json, timeout=60)
+        return r if as_json else r.decode()
+    return library.find(q, topic or "", project or "", k) if as_json else library.find_md(q, topic or "", project or "", k, full)
 
 
 def lib_context(tid, brief):
@@ -785,6 +796,13 @@ def cmd_topic_context(a):
     sys.stdout.write(lib_context(a.id, a.brief))
 
 
+def cmd_find(a):
+    r = lib_find(a.question, a.topic, a.project, a.n, a.full, a.json)
+    if a.json:
+        return print(json.dumps(r, indent=1, ensure_ascii=False))
+    sys.stdout.write(r)
+
+
 def cmd_topic_delete(a):
     lib_op({"op": "topic_delete", "id": a.id.upper()}, a.who)
     print(f"deleted {a.id.upper()} (subtopics moved up; papers keep their other topics)")
@@ -814,7 +832,7 @@ def lib_route(a):
 GLOBAL_CMDS = {"projects", "project_add", "use", "config", "papers", "paper_add", "paper_set", "paper_card",
                "paper_text", "paper_refresh", "paper_pdf", "paper_attach", "paper_delete", "grep", "bib",
                "ideas", "idea_add", "idea_promote", "topics", "topic_add", "topic_papers", "topic_context",
-               "topic_delete"}
+               "topic_delete", "find"}
 
 
 def main():
@@ -902,6 +920,10 @@ def main():
     p = sub.add_parser("topic-context", help="context pack for a deep dive: position, neighbours, full cards, ideas")
     p.add_argument("id"); p.add_argument("--brief", action="store_true", help="tl;drs only")
     p = sub.add_parser("topic-delete"); p.add_argument("id")
+    p = sub.add_parser("find", help="papers relevant to a question: ranked, with page-cited passages and their topics")
+    p.add_argument("question"); p.add_argument("--topic", help="only this topic and its subtopics (C03)")
+    p.add_argument("-n", type=int, default=8, help="how many papers (default 8)")
+    p.add_argument("--full", action="store_true", help="include each paper's whole card"); p.add_argument("--json", action="store_true")
     p = sub.add_parser("thought"); p.add_argument("text")
     p = sub.add_parser("thoughts"); p.add_argument("--all", action="store_true", help="include handled ones")
     a = ap.parse_args()
