@@ -284,6 +284,39 @@ h2{font-size:12px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink3
 .ffind mark{background:color-mix(in srgb,var(--p2) 35%,transparent);color:inherit;border-radius:3px;padding:0 1px}
 @media (max-width:640px){.ffind .fpass{padding-left:12px}}
 .tfindbar{display:flex;gap:8px;margin-top:14px}.tfindbar .searchbox{flex:1}
+/* library chat */
+.chatwrap{display:grid;grid-template-columns:minmax(200px,260px) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:900px){.chatwrap{grid-template-columns:1fr}.chatside{max-height:220px;overflow:auto}}
+.chatside{padding:8px}
+.chatside .crow{padding:8px 10px;border-radius:8px;cursor:pointer;font-size:13px;line-height:1.35}
+.chatside .crow:hover{background:var(--panel2)}
+.chatside .crow.on{background:color-mix(in srgb,var(--accent) 11%,var(--panel));color:var(--accent)}
+.chatside .crow .t{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chatside .crow .s{color:var(--ink3);font-size:11.5px;margin-top:2px;display:flex;gap:6px}
+.chatmain{display:flex;flex-direction:column;min-height:min(72vh,760px)}
+.chathead{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:12px 16px;border-bottom:1px solid var(--line)}
+.chathead .ctitle{font-weight:650;font-size:15px;flex:1;min-width:160px;cursor:text}
+.chatmsgs{flex:1;padding:14px 16px;display:flex;flex-direction:column;gap:12px;overflow-wrap:anywhere}
+.cmsg{max-width:100%}
+.cmsg.user{align-self:flex-end;max-width:85%;background:color-mix(in srgb,var(--accent) 10%,var(--panel));border:1px solid color-mix(in srgb,var(--accent) 22%,var(--line));border-radius:12px 12px 4px 12px;padding:8px 12px}
+.cmsg.bot{border-left:3px solid color-mix(in srgb,var(--accent) 45%,var(--line));padding:2px 0 2px 12px}
+.cmsg .acts{display:flex;gap:6px;margin-top:6px;opacity:.7}.cmsg:hover .acts{opacity:1}
+.cmsg .who{font-size:11.5px;color:var(--ink3);margin-bottom:3px}
+.csteps{display:flex;flex-direction:column;gap:2px}
+.cstep{font-size:12px;color:var(--ink3)}
+.cstep summary{cursor:pointer;list-style:none;display:flex;gap:6px;align-items:center}
+.cstep summary::-webkit-details-marker{display:none}
+.cstep pre{white-space:pre-wrap;font-size:11.5px;max-height:260px;overflow:auto;background:var(--panel2);border-radius:8px;padding:8px;margin:4px 0 6px}
+.cstep.err{color:var(--p1)}
+a.cite{background:color-mix(in srgb,var(--accent) 9%,transparent);color:var(--accent);border-radius:5px;padding:0 3px;cursor:pointer;text-decoration:none;font-weight:600;white-space:nowrap}
+a.cite:hover{background:color-mix(in srgb,var(--accent) 18%,transparent)}
+a.cite.topic{color:var(--doing);background:color-mix(in srgb,var(--doing) 10%,transparent)}
+.chatcomp{border-top:1px solid var(--line);padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+.chatcomp textarea{width:100%;resize:vertical;min-height:58px}
+.chatcomp .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.chatcomp .row .sel{max-width:240px}
+.typing{display:inline-block;width:8px;height:14px;background:var(--accent);vertical-align:text-bottom;animation:blink 1s steps(2) infinite;margin-left:2px}
+@keyframes blink{50%{opacity:0}}
 .pacts{display:flex;gap:6px;flex-wrap:wrap;margin:2px 0 16px}
 .pacts .btn{text-decoration:none;color:var(--ink)}
 .cardsec{margin-top:14px}
@@ -601,7 +634,7 @@ body.in-project .proj-only{display:flex}
   <!-- LIBRARY -->
   <section class="view" id="view-library">
     <div class="card phero" id="lhero"></div>
-    <div class="libtabs" id="libTabs"><button data-v="papers"><svg class="ic sm"><use href="#i-book"/></svg>Papers <span class="n" id="nLibP"></span></button><button data-v="topics"><svg class="ic sm"><use href="#i-map"/></svg>Topics <span class="n" id="nLibT"></span></button><button data-v="ideas"><svg class="ic sm"><use href="#i-bulb"/></svg>Ideas <span class="n" id="nLibI"></span></button></div>
+    <div class="libtabs" id="libTabs"><button data-v="papers"><svg class="ic sm"><use href="#i-book"/></svg>Papers <span class="n" id="nLibP"></span></button><button data-v="topics"><svg class="ic sm"><use href="#i-map"/></svg>Topics <span class="n" id="nLibT"></span></button><button data-v="ideas"><svg class="ic sm"><use href="#i-bulb"/></svg>Ideas <span class="n" id="nLibI"></span></button><button data-v="chat" id="chatTabBtn" style="display:none"><svg class="ic sm"><use href="#i-msg"/></svg>Chat</button></div>
     <div id="lideas">
       <div class="filters">
         <div class="searchbox"><svg class="ic"><use href="#i-search"/></svg><input class="search" id="iq" placeholder="Filter ideas…"></div>
@@ -611,6 +644,11 @@ body.in-project .proj-only{display:flex}
       </div>
       <div class="iboard" id="iboard"></div>
     </div>
+    <div id="lchat"><div class="chatwrap"><div class="card chatside"><button class="btn small primary" data-cnew style="width:100%;justify-content:center;margin-bottom:6px"><svg class="ic sm"><use href="#i-plus"/></svg>New chat</button><div id="chatList"></div></div>
+      <div class="card chatmain"><div class="chathead" id="chatHead"></div><div class="chatmsgs" id="chatMsgs"></div>
+        <div class="chatcomp"><textarea class="field" id="chatIn" rows="2" placeholder="Ask about your papers…  (Enter to send, ⇧Enter for a new line)"></textarea>
+          <div class="row"><select class="sel" id="chatModel" title="Model"></select><span class="muted" style="font-size:12px" id="chatHint">The assistant searches and reads your library (read-only) and cites pages.</span>
+            <button class="btn small" id="chatStop" style="display:none;margin-left:auto">Stop</button><button class="btn small primary" id="chatSend" style="margin-left:auto"><svg class="ic sm"><use href="#i-arrow"/></svg>Send</button></div></div></div></div></div>
     <div id="ltopics"><div class="tmap"><div class="card ttree" id="ttree"></div><div class="tdetail" id="tdetail"></div></div></div>
     <div id="lpapers">
     <div id="laddL"></div>
@@ -640,6 +678,7 @@ body.in-project .proj-only{display:flex}
       <p><b>Library.</b> The <svg class="ic sm"><use href="#i-book"/></svg> button opens the paper library, shared by all projects. Add papers by arXiv id, DOI or link, or drop PDFs on the page; details are looked up and the text is extracted so agents can read and search it (<code>bb paper-text</code>, <code>bb grep</code>). Each paper keeps your reading status, your own summary, a <i>card</i> written by an agent after reading it, and a notes thread. Tag a paper to projects and it shows in that project's Papers tab.</p>
       <p><b>Ideas.</b> The library's Ideas tab is a board of research ideas: each has a pitch, open questions and the papers it builds on, and moves from <i>raw</i> to <i>promising</i> to <i>pursuing</i> (or gets parked or dropped; drag cards between columns). Agents add ideas with <code>bb idea-add</code> when you ask them to brainstorm from your papers. When an idea is ready, turn it into an item or experiment in a project from its panel; the two stay linked.</p>
       <p><b>Topics.</b> The library's Topics tab maps your papers onto the field: a tree of research directions (e.g. <i>CTI-driven hunting › Learned query-graph matching</i>), each with its position in the literature and its open problems. A paper can sit in several topics; the first (★) is its main one. Pick a topic to see its papers, subtopics and ideas, and copy a deep-dive prompt: agents load the whole direction with <code>bb topic-context C05</code>.</p>
+      <p><b>Chat.</b> When the server has a model configured, the library's Chat tab lets you discuss your papers with an assistant that searches and reads them (it can't change anything) and cites pages: click <i>P12 p.7</i> to open the PDF there. Start from a topic (“Chat about this topic”), a paper (“Ask about this paper”) or a search (“Discuss in chat”) to keep it focused; save a good answer as a note on a topic, paper or idea.</p>
       <p class="voice-only"><b>Voice input.</b> The <svg class="ic sm"><use href="#i-mic"/></svg> button next to a text box records you, and the transcript is added to that box. Click it again to stop, or press <kbd>Esc</kbd> to discard. Live recording needs the HTTPS address. Over plain HTTP the button lets you pick an audio file instead.</p>
       <p><b>The % ring</b> is priority-weighted: a P1 item counts 3×, P2 2×, P3 1×. Partial progress counts too, so move the slider as you go.</p>
       <p><b>Talking to agents.</b> Leave a note on an item (“Claude: draft the fix for this”) or drop a thought, then tell the agent “check the board”. It answers in the same note thread.</p>
@@ -915,7 +954,7 @@ function parseHash(){
   const parts=location.hash.replace(/^#\/?/,"").split("/").filter(Boolean).map(decodeURIComponent);
   if(!parts.length) return {view:"home"};
   if(parts[0]==="help") return {view:"help"};
-  if(parts[0]==="library") return {view:"library",tab:["ideas","topics"].includes(parts[1])?parts[1]:null,item:/^[PIC]\d+$/.test(parts[1]||"")?parts[1]:null};
+  if(parts[0]==="library") return {view:"library",tab:["ideas","topics","chat"].includes(parts[1])?parts[1]:null,item:/^[PICK]\d+$/.test(parts[1]||"")?parts[1]:null};
   const isItem=s=>/^[A-Z]+\d+$/.test(s||"");
   const tab=TABS.includes(parts[1])?parts[1]:null;
   return {view:"project",slug:parts[0],tab,item:isItem(parts[1])?parts[1]:isItem(parts[2])?parts[2]:null};
@@ -930,7 +969,8 @@ async function route(){
     showView(r.view); await refresh(); window.scrollTo({top:0});
     if(r.view==="library"){
       if(r.item&&r.item[0]==="C") ui.lib.topic=r.item;
-      if(r.tab||r.item){ ui.lib.tab=r.tab||(r.item&&{I:"ideas",C:"topics"}[r.item[0]])||"papers"; persist(); renderLibrary() }
+      if(r.item&&r.item[0]==="K") openChat(r.item,false);
+      if(r.tab||r.item){ ui.lib.tab=r.tab||(r.item&&{I:"ideas",C:"topics",K:"chat"}[r.item[0]])||"papers"; persist(); renderLibrary() }
       if(r.item && (findPaper(r.item)||findIdea(r.item))) openLibItem(r.item,false);
     }
     return;
@@ -1415,7 +1455,8 @@ function insertTranscript(target,text){
   toast("Transcribed","mic");
 }
 $("#voiceFile").onchange=e=>{const f=e.target.files[0]; if(f) sendAudio(f,e.target.dataset.target)};
-fetch("/api/config",{cache:"no-store"}).then(r=>r.json()).then(c=>{document.body.classList.toggle("voice",!!c.voice);httpsPort=c.https_port||0}).catch(()=>{});
+fetch("/api/config",{cache:"no-store"}).then(r=>r.json()).then(c=>{document.body.classList.toggle("voice",!!c.voice);httpsPort=c.https_port||0;
+  chatOn=!!c.chat; $("#chatTabBtn").style.display=chatOn?"":"none"; document.body.classList.toggle("chaton",chatOn); if(chatOn&&view==="library") renderLibrary()}).catch(()=>{});
 
 /* ---------- events ---------- */
 document.addEventListener("click",e=>{
@@ -1582,9 +1623,9 @@ function addBarHTML(proj){
 }
 function renderLibrary(){
   document.title="Library · brainboard";
-  const tab=["ideas","topics"].includes(ui.lib.tab)?ui.lib.tab:"papers";
+  const tab=["ideas","topics","chat"].includes(ui.lib.tab)?ui.lib.tab:"papers";
   document.querySelectorAll("#libTabs button").forEach(b=>b.classList.toggle("on",b.dataset.v===tab));
-  $("#lpapers").style.display=tab==="papers"?"":"none"; $("#lideas").style.display=tab==="ideas"?"":"none"; $("#ltopics").style.display=tab==="topics"?"":"none";
+  $("#lpapers").style.display=tab==="papers"?"":"none"; $("#lideas").style.display=tab==="ideas"?"":"none"; $("#ltopics").style.display=tab==="topics"?"":"none"; $("#lchat").style.display=tab==="chat"?"":"none";
   $("#nLibP").textContent=papers().length||""; const ni=ideas().filter(i=>!["parked","dropped"].includes(i.status)).length; $("#nLibI").textContent=ni||""; $("#nLibT").textContent=topics().length||"";
   const ps=papers(), lu=ui.lib;
   const n=r=>ps.filter(p=>p.reading===r).length, cards=ps.filter(p=>p.card&&p.card.tldr).length;
@@ -1607,6 +1648,7 @@ function renderLibrary(){
     &&(!lu.ltopic||(lu.ltopic==="none"?!(p.topics||[]).length:(p.topics||[]).some(x=>tset.has(x)))));
   if(tab==="ideas"){ renderIdeas(); return }
   if(tab==="topics"){ renderTopics(); return }
+  if(tab==="chat"){ renderChat(); return }
   list=filterPapers(list,$("#lq").value);
   const s=lu.sort||"added";
   list.sort(s==="year"?(a,b)=>(b.year||0)-(a.year||0):s==="title"?(a,b)=>(a.short||a.title).localeCompare(b.short||b.title):(a,b)=>(b.added||"").localeCompare(a.added||""));
@@ -1676,6 +1718,7 @@ function renderPaperDrawer(){
           :`<button class="btn small primary" data-attach>${ic("upload","sm")}Attach PDF</button>`}
         ${links}
         <button class="btn small" data-copybib>${ic("copy","sm")}Copy BibTeX</button>
+        ${chatOn?`<button class="btn small" data-chatabout="paper:${p.id}">${ic("msg","sm")}Ask about this paper</button>`:""}
         <button class="btn small" data-refresh title="Look the details up again on arXiv / Semantic Scholar / Crossref">${ic("search","sm")}Refresh details</button>
       </div>
       <div class="ctrl">
@@ -1924,7 +1967,7 @@ function renderFind(){
   const r=st.res;
   el.innerHTML=`<div class="card list ffind" style="margin-bottom:14px"><div class="ghead2">${ic("spark","sm")}<span>Relevant to <b>${esc(st.q)}</b> <span class="muted">(${esc(scope)})</span></span>
       <span class="muted">${st.loading?"ranking…":r.papers.length+" paper"+(r.papers.length===1?"":"s")}</span>
-      <span style="margin-left:auto;display:flex;gap:6px">${st.loading||!r.papers.length?"":`<button class="btn small primary" data-fcopy="">${ic("copy","sm")}Copy as context</button><button class="btn small" data-fcopy="full" title="Include each paper's whole card">${ic("copy","sm")}+ full cards</button><a class="btn small" href="${findMdUrl(false)}" target="_blank" rel="noopener">${ic("file","sm")}Text</a>`}
+      <span style="margin-left:auto;display:flex;gap:6px">${st.loading||!r.papers.length?"":`<button class="btn small primary" data-fcopy="">${ic("copy","sm")}Copy as context</button><button class="btn small" data-fcopy="full" title="Include each paper's whole card">${ic("copy","sm")}+ full cards</button><a class="btn small" href="${findMdUrl(false)}" target="_blank" rel="noopener">${ic("file","sm")}Text</a>${chatOn?`<button class="btn small" data-fchat>${ic("msg","sm")}Discuss in chat</button>`:""}`}
       <button class="ghost" data-fclose>${ic("x","sm")}</button></span></div>
     ${st.loading?"":r.papers.length?`${r.topics.length?`<div class="ftop">Clusters in ${r.topics.filter(x=>findTopic(x.id)).map(x=>`<span class="chip topic" data-opentopic="${x.id}" title="${esc(x.papers.join(", "))}">${esc(findTopic(x.id).title)} · ${x.papers.length}</span>`).join("")}</div>`:""}
       ${r.papers.map(x=>{ const p=findPaper(x.id); if(!p) return ""; return `<div class="fpaper">${prowHTML(p)}${x.passages.map(ps=>`<div class="fpass" data-grephit="${p.id}" data-page="${ps.page}" title="Open the PDF at this page"><span class="chip tag">p.${ps.page}</span><span>${hl(ps.text,terms)}</span></div>`).join("")}</div>` }).join("")}`
@@ -1934,7 +1977,116 @@ document.addEventListener("click",e=>{
   const c=e.target.closest("[data-fcopy]");
   if(c&&findState){ e.stopPropagation(); fetch(findMdUrl(!!c.dataset.fcopy)).then(r=>r.text()).then(t=>navigator.clipboard.writeText(t)).then(()=>toast("Copied. Paste it into Claude, ChatGPT or Codex with your question","copy"),er=>toast("Copy failed: "+er.message+" (use Text instead)","alert")); return }
   if(e.target.closest("[data-fclose]")){ e.stopPropagation(); findState=null; renderFind(); return }
+  if(e.target.closest("[data-fchat]")&&findState){ e.stopPropagation(); startChat(findState.topic?{topic:findState.topic}:{},findState.q); return }
 },true);
+
+/* ---------- chat with the library (an agent with read-only tools, streamed from /api/chats/K01/send) ---------- */
+let chatOn=false, CH=null, chatCur=null, chatLive=null, chatAbort=null;
+async function loadChats(){ CH=await http("/api/chats"); return CH }
+async function openChat(id,push=true){
+  try{ chatCur=await http(`/api/chats/${id}`) }catch(e){ toast(e.message,"alert"); return }
+  ui.lib.chat=id; persist(); if(push&&view==="library") history.replaceState(null,"",libHash()); renderChat();
+}
+async function startChat(scope,text){
+  if(openId) closeDrawer(true);
+  try{ chatCur=await http("/api/chats",{scope}); }catch(e){ toast(e.message,"alert"); return }
+  ui.lib.tab="chat"; ui.lib.chat=chatCur.id; persist();
+  if(view!=="library") go("#/library/"+chatCur.id); else { history.replaceState(null,"",libHash()); renderLibrary() }
+  await loadChats(); renderChat();
+  if(text){ $("#chatIn").value=text; sendChat() } else setTimeout(()=>$("#chatIn").focus(),50);
+}
+function citeLinks(html){ // P12 (Short) p.7 → opens the PDF at that page; P12 → paper; C05 → topic; I03 → idea
+  return ("<div>"+html+"</div>").replace(/>([^<]+)</g,(m,t)=>">"+t.replace(/\b([PCI]\d{2,4})\b((?:\s*\([^()<]{1,40}\))?(?:,?\s*pp?\.\s?(\d+)(?:[–-]\d+)?)?)/g,(all,id,rest,pg)=>{
+    if(id[0]==="P"&&findPaper(id)) return pg?`<a class="cite" data-grephit="${id}" data-page="${pg}" title="${esc(findPaper(id).title)} · open p.${pg}">${all}</a>`:`<a class="cite" data-openpaper="${id}" title="${esc(findPaper(id).title)}">${all}</a>`;
+    if(id[0]==="C"&&findTopic(id)) return `<a class="cite topic" data-opentopic="${id}" title="${esc(findTopic(id).title)}">${all}</a>`;
+    if(id[0]==="I"&&findIdea(id)) return `<a class="cite" data-iid="${id}" title="${esc(findIdea(id).title)}">${all}</a>`;
+    return all })+"<");
+}
+function scopeLabel(sc){ sc=sc||{}; if(sc.topic&&findTopic(sc.topic)) return `${sc.topic} ${findTopic(sc.topic).title}`; if(sc.paper&&findPaper(sc.paper)) return `${sc.paper} ${findPaper(sc.paper).short||findPaper(sc.paper).title}`; return "Whole library" }
+function stepHTML(m){ const err=(m.content||"").startsWith("error:");
+  return `<details class="cstep${err?" err":""}"><summary>${ic(err?"alert":m.name==="find"||m.name==="grep"?"search":m.name==="read_pages"?"file":m.name==="topic_context"?"map":"book","sm")}${esc(m.label||m.name)} <span>· ${Math.round((m.content||"").length/100)/10}k chars</span></summary><pre>${esc((m.content||"").slice(0,4000))}${(m.content||"").length>4000?"\n…":""}</pre></details>` }
+function botHTML(m,i){ return `<div class="cmsg bot"><div class="who">${ic("bot","sm")} ${esc(m.model||"assistant")}</div><div class="md">${citeLinks(md(m.content||""))}</div>
+  ${i!=null?`<div class="acts"><button class="btn small" data-ccopy="${i}">${ic("copy","sm")}Copy</button><button class="btn small" data-cnote="${i}">${ic("msg","sm")}Save as note</button></div>`:""}</div>` }
+function renderChat(){
+  if(!chatOn){ $("#chatMsgs").innerHTML=emptyHTML("msg","Chat isn't configured on this server (BRAINBOARD_LLM_URL)."); return }
+  if(!CH){ loadChats().then(renderChat).catch(e=>toast(e.message,"alert")); return }
+  if(!chatCur&&ui.lib.chat&&CH.chats.some(c=>c.id===ui.lib.chat)){ openChat(ui.lib.chat,false); return }
+  $("#chatList").innerHTML=CH.chats.length?CH.chats.map(c=>`<div class="crow${chatCur&&chatCur.id===c.id?" on":""}" data-copen="${c.id}"><div class="t">${esc(c.title)}</div><div class="s"><span>${esc(scopeLabel(c.scope).slice(0,28))}</span><span style="margin-left:auto">${ago(c.updated)}</span></div></div>`).join("")
+    :`<div class="muted" style="font-size:12.5px;padding:6px">No chats yet.</div>`;
+  const sel=$("#chatModel"), want=(chatCur&&chatCur.model)||ui.lib.model||CH.default;
+  if(sel.dataset.n!==String(CH.models.length)){ sel.innerHTML=CH.models.map(m=>`<option>${esc(m)}</option>`).join(""); sel.dataset.n=CH.models.length }
+  if(CH.models.includes(want)) sel.value=want;
+  const live=chatLive&&chatCur&&chatLive.cid===chatCur.id;
+  $("#chatSend").style.display=live?"none":""; $("#chatStop").style.display=live?"":"none";
+  if(!chatCur){ $("#chatHead").innerHTML=`<span class="ctitle">Chat with your library</span>`;
+    $("#chatMsgs").innerHTML=emptyHTML("msg","Ask a question about your papers. The assistant searches the library, reads cards and pages, and answers with citations you can click (P12 p.7 opens the PDF there). Start from a topic or a paper with “Chat about this topic” / “Ask about this paper” to keep it focused."); return }
+  const c=chatCur;
+  $("#chatHead").innerHTML=`<span class="rid">${c.id}</span><span class="ctitle" data-crename title="Click to rename">${esc(c.title)}</span>
+    <select class="sel" id="chatScope" title="What the assistant focuses on"><option value="">Whole library</option>${topicTree().map(({t,d})=>`<option value="topic:${t.id}" ${c.scope.topic===t.id?"selected":""}>${"\u2003".repeat(d)}${esc(t.title)}</option>`).join("")}${c.scope.paper?`<option value="paper:${c.scope.paper}" selected>${esc(scopeLabel(c.scope))}</option>`:""}</select>
+    <button class="ghost danger" data-cdel title="Delete chat">${ic("trash","sm")}</button>`;
+  const out=[]; const ms=c.messages;
+  for(let i=0;i<ms.length;i++){ const m=ms[i];
+    if(m.role==="user") out.push(`<div class="cmsg user md">${md(m.content)}</div>`);
+    else if(m.role==="tool"){ const run=[]; while(i<ms.length&&(ms[i].role==="tool"||(ms[i].role==="assistant"&&ms[i].tool_calls&&!ms[i].content))){ if(ms[i].role==="tool") run.push(stepHTML(ms[i])); i++ } i--; out.push(`<div class="csteps">${run.join("")}</div>`) }
+    else if(m.role==="assistant"&&m.tool_calls){ if(m.content) out.push(`<div class="cmsg bot"><div class="md muted">${citeLinks(md(m.content))}</div></div>`) }
+    else if(m.role==="assistant"&&m.error) out.push(`<div class="cstep err">${ic("alert","sm")} ${esc(m.model||"")} failed: ${esc(m.error.slice(0,240))}</div>`);
+    else if(m.role==="assistant") out.push(botHTML(m,i));
+  }
+  if(live){ const L=chatLive;
+    out.push(`<div class="csteps">${L.steps.map(s=>`<div class="cstep${s.error?" err":""}">${ic(s.done?(s.error?"alert":"check"):"loader",s.done?"sm":"sm spin")} ${esc(s.label)}</div>`).join("")}${L.thinking&&!L.text?`<div class="cstep">${ic("loader","sm spin")} thinking…</div>`:""}</div>`);
+    out.push(`<div class="cmsg bot"><div class="who">${ic("bot","sm")} ${esc(L.model)}</div><div class="md">${L.text?citeLinks(md(L.text)):""}<span class="typing"></span></div></div>`);
+  }
+  const box=$("#chatMsgs"), atEnd=box.getBoundingClientRect().bottom<=innerHeight+80;
+  box.innerHTML=out.join("")||emptyHTML("msg",`Ask anything about ${esc(scopeLabel(c.scope))}.`);
+  if(live&&atEnd) window.scrollTo({top:document.body.scrollHeight});
+}
+async function sendChat(){
+  const ta=$("#chatIn"), text=ta.value.trim(); if(!text||chatLive) return;
+  if(!chatCur){ try{ chatCur=await http("/api/chats",{scope:{}}) }catch(e){ toast(e.message,"alert"); return } }
+  const cid=chatCur.id, model=$("#chatModel").value; ui.lib.model=model; persist();
+  ta.value=""; chatCur.messages.push({role:"user",content:text});
+  chatLive={cid,model,steps:[],text:"",thinking:false}; renderChat(); window.scrollTo({top:document.body.scrollHeight});
+  chatAbort=new AbortController();
+  try{
+    const r=await fetch(`/api/chats/${cid}/send`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text,model,who:ME}),signal:chatAbort.signal});
+    if(!r.ok){ const j=await r.json().catch(()=>({})); throw new Error(j.error||r.status) }
+    const rd=r.body.getReader(), dec=new TextDecoder(); let buf="";
+    for(;;){ const {value,done}=await rd.read(); if(done) break; buf+=dec.decode(value,{stream:true});
+      let k; while((k=buf.indexOf("\n\n"))>=0){ const blk=buf.slice(0,k); buf=buf.slice(k+2);
+        const ev=(blk.match(/^event: (.*)$/m)||[])[1], dl=(blk.match(/^data: (.*)$/m)||[])[1]; if(!ev) continue;
+        const d=dl?JSON.parse(dl):""; const L=chatLive; if(!L) continue;
+        if(ev==="delta") L.text+=d; else if(ev==="thinking") L.thinking=true;
+        else if(ev==="step_end"){ L.text=""; L.thinking=false }
+        else if(ev==="tool") L.steps.push({label:d});
+        else if(ev==="tool_done"){ const s=L.steps.find(x=>x.label===d.label&&!x.done); if(s){ s.done=true; s.error=d.error } }
+        else if(ev==="error") toast(d,"alert");
+        if(chatCur&&chatCur.id===cid) renderChat();
+      } }
+  }catch(e){ if(e.name!=="AbortError") toast(e.message,"alert") }
+  chatLive=null; chatAbort=null;
+  try{ const fresh=await http(`/api/chats/${cid}`); if(chatCur&&chatCur.id===cid) chatCur=fresh; await loadChats() }catch(e){}
+  if(view==="library"&&ui.lib.tab==="chat") renderChat();
+}
+$("#chatSend").onclick=sendChat;
+$("#chatStop").onclick=()=>{ if(chatAbort) chatAbort.abort(); toast("Stopped watching; the answer still finishes and is saved","x") };
+$("#chatIn").addEventListener("keydown",e=>{ if(e.key==="Enter"&&!e.shiftKey&&!e.isComposing){ e.preventDefault(); sendChat() } });
+$("#chatModel").onchange=e=>{ ui.lib.model=e.target.value; persist() };
+document.addEventListener("change",e=>{ if(e.target.id!=="chatScope"||!chatCur) return; const [k,v]=e.target.value.split(":");
+  http(`/api/chats/${chatCur.id}`,{op:"update",fields:{scope:k?{[k]:v}:{}}}).then(c=>{chatCur=c;loadChats().then(renderChat)}).catch(er=>toast(er.message,"alert")) });
+document.addEventListener("click",e=>{
+  const ab=e.target.closest("[data-chatabout]"); if(ab){ e.stopPropagation(); const [k,v]=ab.dataset.chatabout.split(":"); startChat({[k]:v}); return }
+  if(!e.target.closest("#lchat")) return;
+  if(e.target.closest("[data-cnew]")){ chatCur=null; ui.lib.chat=""; persist(); history.replaceState(null,"",libHash()); renderChat(); $("#chatIn").focus(); return }
+  const op=e.target.closest("[data-copen]"); if(op){ openChat(op.dataset.copen); return }
+  if(e.target.closest("[data-crename]")&&chatCur){ const t=prompt("Rename chat:",chatCur.title); if(t&&t.trim()) http(`/api/chats/${chatCur.id}`,{op:"update",fields:{title:t.trim()}}).then(c=>{chatCur=c;loadChats().then(renderChat)}); return }
+  if(e.target.closest("[data-cdel]")&&chatCur&&confirm(`Delete chat “${chatCur.title}”? (It goes to the library's trash folder.)`)){ http(`/api/chats/${chatCur.id}`,{op:"delete"}).then(()=>{chatCur=null;ui.lib.chat="";persist();history.replaceState(null,"",libHash());loadChats().then(renderChat)}).catch(er=>toast(er.message,"alert")); return }
+  const cc=e.target.closest("[data-ccopy]"); if(cc&&chatCur){ navigator.clipboard.writeText(chatCur.messages[+cc.dataset.ccopy].content).then(()=>toast("Copied","copy")); return }
+  const cn=e.target.closest("[data-cnote]"); if(cn&&chatCur){ const m=chatCur.messages[+cn.dataset.cnote], sc=chatCur.scope||{};
+    const id=(prompt("Save this answer as a note on (a topic C.., paper P.. or idea I..):",sc.topic||sc.paper||"")||"").trim().toUpperCase(); if(!id) return;
+    if(!(findTopic(id)||findPaper(id)||findIdea(id))){ toast("No such topic, paper or idea: "+id,"alert"); return }
+    const q=[...chatCur.messages.slice(0,+cn.dataset.cnote)].reverse().find(x=>x.role==="user");
+    libApi({op:"note",id,who:"chat",text:(q?`**Q:** ${q.content}\n\n`:"")+m.content+`\n\n_(from chat ${chatCur.id}, ${m.model||"assistant"})_`}).then(st=>{ if(st) toast("Saved on "+id,"check") }); return }
+});
 
 /* ---------- topics: a map of the field (in the library) ---------- */
 const topics = () => (LB && LB.topics) || [];
@@ -1943,7 +2095,7 @@ function tAncestors(id){ const out=[]; let t=findTopic(id); while(t&&t.parent&&!
 const tSubtree = id => [id,...topics().filter(t=>tAncestors(t.id).includes(id)).map(t=>t.id)];
 function topicTree(parent="",d=0){ return topics().filter(t=>(t.parent||"")===parent).flatMap(t=>[{t,d},...topicTree(t.id,d+1)]) }
 function tPapers(id){ const s=new Set(tSubtree(id)); return papers().filter(p=>(p.topics||[]).some(x=>s.has(x))) }
-const libHash = () => ui.lib.tab==="ideas"?"#/library/ideas":ui.lib.tab==="topics"?"#/library/"+(findTopic(ui.lib.topic)?ui.lib.topic:"topics"):"#/library";
+const libHash = () => ui.lib.tab==="chat"?"#/library/"+(chatCur?chatCur.id:"chat"):ui.lib.tab==="ideas"?"#/library/ideas":ui.lib.tab==="topics"?"#/library/"+(findTopic(ui.lib.topic)?ui.lib.topic:"topics"):"#/library";
 function showTopic(id){ if(!findTopic(id)){ toast("No such topic: "+id,"alert"); return }
   if(openId) closeDrawer(true); ui.lib.tab="topics"; ui.lib.topic=id; persist(); go("#/library/"+id) }
 function topicChipsEdit(ids,pre,mainStar=true){
@@ -2001,7 +2153,7 @@ Tell me how these papers relate (lineage, shared assumptions, where they disagre
     <div id="tfind" style="margin-top:12px"></div>
     <div class="tdeep" style="margin-top:12px"><div class="muted" style="font-size:12.5px">Copy this to Claude or Codex. The context pack is everything the agent loads first.</div>
       <pre id="tPrompt">${esc(prompt)}</pre>
-      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn small primary" data-tcopy>${ic("copy","sm")}Copy prompt</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">${chatOn?`<button class="btn small primary" data-chatabout="topic:${t.id}">${ic("msg","sm")}Chat about this topic</button>`:""}<button class="btn small${chatOn?"":" primary"}" data-tcopy>${ic("copy","sm")}Copy prompt</button>
         <a class="btn small" href="/api/library/context/${t.id}" target="_blank" rel="noopener">${ic("file","sm")}View context pack</a></div></div>`;
   renderFind();
 }

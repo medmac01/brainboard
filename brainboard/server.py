@@ -36,6 +36,9 @@ API
   GET  /api/library/grep?q=…&project=…&topic=C03&limit=…
   GET  /api/library/context/<C id>?brief=1   a topic's context pack (Markdown) for deep dives
   GET  /api/library/find?q=…&topic=C03&project=…&k=8[&format=md&full=1]   papers relevant to a question
+  GET  /api/chats · GET /api/chats/K01 · POST /api/chats {scope:{topic|paper}, title}   library chat (BRAINBOARD_LLM_URL)
+  POST /api/chats/K01/send {text, model}   → text/event-stream of the agent's steps and answer
+  POST /api/chats/K01 {op: "update", fields} | {op: "delete"}
   GET  /api/library/bib?ids=P01,P02  (or ?project=slug, or nothing for all) → BibTeX
   GET  /api/config                   {"voice": bool, "asr_model": …}
   POST /api/transcribe               raw audio body (Content-Type: audio/…) → {"text": …}
@@ -59,6 +62,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import core  # noqa: E402
 import library  # noqa: E402
+import chat  # noqa: E402
 
 INDEX = os.path.join(core.HERE, "index.html")
 PASSWORD = os.environ.get("BRAINBOARD_PASSWORD", "")
@@ -71,6 +75,7 @@ ASR_LANGUAGE = os.environ.get("BRAINBOARD_ASR_LANGUAGE", "")
 AUDIO_EXT = {"audio/webm": "webm", "audio/ogg": "ogg", "audio/mp4": "m4a", "audio/mpeg": "mp3",
              "audio/wav": "wav", "audio/x-wav": "wav", "audio/aac": "aac", "audio/flac": "flac"}
 LIB_FILE_RE = re.compile(r"^/api/library/(pdf|text)/([PI]\d{2,5})$")
+CHAT_RE = re.compile(r"^/api/chats/(K\d{2,5})(/send)?$")
 LIB_CTX_RE = re.compile(r"^/api/library/context/(C\d{2,5})$")
 PROJECT_RE = re.compile(r"^/api/p/([a-z0-9][a-z0-9-]{0,47})/(state|version|op)$")
 
@@ -153,10 +158,21 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/version":
             return self._send(200, {"version": core.index_version()})
         if path == "/api/config":
-            return self._send(200, {"voice": bool(ASR_URL), "asr_model": ASR_MODEL if ASR_URL else "",
+            return self._send(200, {"voice": bool(ASR_URL), "asr_model": ASR_MODEL if ASR_URL else "", "chat": chat.enabled(),
                                     "https_port": int(os.environ.get("BRAINBOARD_TLS_PORT", 0) or 0)})
         if path.startswith("/api/library"):
             return self._library_get(path)
+        if path == "/api/chats":
+            if not chat.enabled():
+                return self._send(200, {"enabled": False, "chats": [], "models": []})
+            return self._send(200, {"enabled": True, "chats": chat.list_chats(), "models": chat.models(),
+                                    "default": chat.default_model()})
+        m = CHAT_RE.match(path)
+        if m and not m.group(2):
+            try:
+                return self._send(200, chat.load(m.group(1)))
+            except KeyError as e:
+                return self._send(404, {"error": str(e).strip("'\"")})
         m = PROJECT_RE.match(path)
         if m and m.group(2) != "op":
             slug = m.group(1)
@@ -175,6 +191,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._transcribe()
         if path.startswith("/api/library/"):
             return self._library_post(path)
+        if path == "/api/chats" or CHAT_RE.match(path):
+            return self._chat_post(path)
         m = PROJECT_RE.match(path)
         if path != "/api/projects" and not (m and m.group(2) == "op"):
             return self._send(404, {"error": "not found"})
@@ -287,6 +305,45 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(400, {"error": str(e)})
         except RuntimeError as e:
             return self._send(502, {"error": str(e)})
+
+    def _chat_post(self, path):
+        try:
+            body = self._body()
+            who = str(body.get("who", "me"))[:32]
+            if path == "/api/chats":
+                return self._send(200, chat.create(body.get("scope"), body.get("title", ""), who))
+            m = CHAT_RE.match(path)
+            if not m.group(2):
+                if body.get("op") == "delete":
+                    chat.delete(m.group(1))
+                    return self._send(200, {"deleted": m.group(1)})
+                return self._send(200, chat.update(m.group(1), body.get("fields") or {}))
+            chat.load(m.group(1))
+        except OverflowError:
+            return self._send(413, {"error": "body too large"})
+        except KeyError as e:
+            return self._send(404, {"error": str(e).strip("'\"")})
+        except (ValueError, TypeError) as e:
+            return self._send(400, {"error": str(e)})
+        # streamed answer: one "event: kind / data: json" block per step; the connection closes at the end
+        self.send_response(200)
+        self.send_header("Content-Type", "text/event-stream; charset=utf-8")
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("X-Accel-Buffering", "no")
+        self.end_headers()
+        self.close_connection = True
+
+        def emit(kind, data):
+            try:
+                self.wfile.write(f"event: {kind}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n".encode())
+                self.wfile.flush()
+            except (BrokenPipeError, ConnectionResetError):
+                pass   # the tab went away; the agent still finishes and saves the chat
+        try:
+            chat.send(m.group(1), body.get("text", ""), str(body.get("model") or ""), who, emit)
+        except (KeyError, ValueError, RuntimeError, OSError) as e:
+            emit("error", str(e).strip("'\""))
+        emit("end", "")
 
     def _transcribe(self):
         if not ASR_URL:

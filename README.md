@@ -9,7 +9,10 @@ write after reading it, so the library can be used as context for brainstorming.
 in their field (a tree of research directions, each with its position in the literature and open problems), so
 you and an agent can dive into one direction with all its papers loaded (`topic-context`). Ask the library a question
 (`find`, or *Find relevant* in the UI) to get the relevant papers ranked, with page-cited passages, ready to paste
-into any chat; the `brainboard-library` skill makes Claude Code / Codex do this whenever you ask a research question. Ideas that come out of it live
+into any chat; the `brainboard-library` skill makes Claude Code / Codex do this whenever you ask a research question. Or **chat
+with the library** in the browser: an agent on the server searches and reads your papers (read-only) and answers
+with clickable citations (P12 p.7 opens the PDF there), using any OpenAI-compatible endpoint (a local model router,
+OpenAI, vLLM…): set `BRAINBOARD_LLM_URL` (+ `BRAINBOARD_LLM_KEY`, `BRAINBOARD_LLM_MODEL`). Ideas that come out of it live
 next to the papers (pitch, open questions, papers they build on, raw → promising → pursuing) and can be turned into
 items or experiments in a project. AI agents (Claude Code, Codex, …) use the same board through a CLI and an
 installable skill, so the board is the shared interface between you and them.
@@ -103,5 +106,5 @@ projects, tags, topics, status raw/promising/pursuing/parked/dropped, promoted [
 title, parent topic id, position, questions, notes[]).
 
 HTTP API: `GET /api/library`, `POST /api/library/op|upload|import|bib|refresh`, `GET /api/library/pdf|text/<id>`,
-`GET /api/library/grep|bib`, `GET /api/library/context/<C id>`, `GET /api/library/find?q=…[&format=md]`; `GET /api/projects`, `POST /api/projects` (`create`/`delete`), `GET /api/p/<slug>/state|version`,
+`GET /api/library/grep|bib`, `GET /api/library/context/<C id>`, `GET /api/library/find?q=…[&format=md]`; `GET|POST /api/chats`, `GET|POST /api/chats/<K id>`, `POST /api/chats/<K id>/send` (SSE); `GET /api/projects`, `POST /api/projects` (`create`/`delete`), `GET /api/p/<slug>/state|version`,
 `POST /api/p/<slug>/op`.

@@ -6,12 +6,14 @@
 # First run on the host: create ~/.config/brainboard/server.env (chmod 600) with
 #   BRAINBOARD_PASSWORD=…  BRAINBOARD_HOST=0.0.0.0  BRAINBOARD_PORT=2001
 #   BRAINBOARD_HOME=/home/<user>/.local/share/brainboard   (older installs: BRAINBOARD_DATA=…/board.json still works)
+# Library chat (optional): BRAINBOARD_LLM_URL=http://127.0.0.1:20128/v1 (any OpenAI-compatible endpoint),
+#   BRAINBOARD_LLM_KEY=… if it needs one, BRAINBOARD_LLM_MODEL=default model id
 # Voice input (optional): BRAINBOARD_ASR_URL=http://127.0.0.1:8010/v1/audio/transcriptions, plus HTTPS so browsers
 #   allow the mic: BRAINBOARD_TLS_PORT=2002 BRAINBOARD_TLS_CERT=… BRAINBOARD_TLS_KEY=…
 #   If ~/miniconda3/envs/qwen3-asr exists, the brainboard-asr unit (asr/server.py) is installed too.
 set -euo pipefail
 HOST=medmac@lab.um6pmisc.me; ASR=0
-for a in "$@"; do case "$a" in --asr) ASR=1 ;; -h|--help) sed -n 2,11p "$0"; exit 0 ;; *) HOST=$a ;; esac; done
+for a in "$@"; do case "$a" in --asr) ASR=1 ;; -h|--help) sed -n 2,13p "$0"; exit 0 ;; *) HOST=$a ;; esac; done
 cd "$(dirname "$0")/.."
 
 changed=$(rsync -az --delete --itemize-changes --exclude .git --exclude data/ --exclude __pycache__ ./ "$HOST:apps/brainboard/")
@@ -33,7 +35,7 @@ fi
 EOS
 
 # verify: deployed files match local ones
-files="brainboard/index.html brainboard/server.py brainboard/core.py brainboard/cli.py"
+files="brainboard/index.html brainboard/server.py brainboard/core.py brainboard/cli.py brainboard/library.py brainboard/chat.py"
 local_sums=$(for f in $files; do printf '%s  %s\n' "$(shasum -a 256 "$f" | cut -d' ' -f1)" "$f"; done)
 remote_sums=$(ssh "$HOST" "cd ~/apps/brainboard && sha256sum $files")
 if [ "$local_sums" != "$remote_sums" ]; then
